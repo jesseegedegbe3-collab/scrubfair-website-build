@@ -19,7 +19,7 @@ import { v } from "convex/values";
 // and still returns success — the review is captured either way.
 // ============================================================================
 
-const NOTIFY_EMAIL = "evelynegedegbe3@gmail.com";
+const NOTIFY_EMAIL = "contact@scrubfair.ca";
 
 export const submitReview = action({
   args: {

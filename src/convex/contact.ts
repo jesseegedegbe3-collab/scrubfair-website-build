@@ -20,7 +20,7 @@ import { v } from "convex/values";
 // chat providers.
 // ============================================================================
 
-const NOTIFY_EMAIL = "evelynegedegbe3@gmail.com";
+const NOTIFY_EMAIL = "contact@scrubfair.ca";
 
 export const submitContactForm = action({
   args: {

@@ -7,7 +7,7 @@ export const BRAND = {
   country: "Canada",
   phone: "204-952-8685",
   phoneTel: "+12049528685",
-  email: "evelynegedegbe3@gmail.com",
+  email: "contact@scrubfair.ca",
   hours: "Mon\u2013Sat \u00b7 8:00am\u20136:00pm",
   serviceArea: "Winnipeg, MB",
   founded: new Date().getFullYear(),
