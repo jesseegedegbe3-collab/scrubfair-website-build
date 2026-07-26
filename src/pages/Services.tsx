@@ -7,7 +7,6 @@ import {
   Home as HomeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollHint } from "@/components/ScrollHint";
 import { IMAGES } from "@/lib/images";
 import { SERVICES } from "@/lib/brand";
 
@@ -30,7 +29,7 @@ export default function Services() {
     >
       {/* ─────────── Page header ─────────── */}
       <section className="bg-brand-sky-tint">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
           <motion.div
             initial="hidden"
             animate="show"
@@ -49,8 +48,6 @@ export default function Services() {
               today — and you can always switch later.
             </p>
           </motion.div>
-
-          <ScrollHint />
         </div>
       </section>
 

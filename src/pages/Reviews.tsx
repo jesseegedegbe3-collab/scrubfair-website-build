@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { useQuery } from "convex/react";
 import { ArrowRight, Star, Quote, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollHint } from "@/components/ScrollHint";
 import { IMAGES } from "@/lib/images";
 import { BRAND } from "@/lib/brand";
 import { api } from "../convex/_generated/api";
@@ -41,7 +40,7 @@ export default function Reviews() {
     >
       {/* ─────────── Page header ─────────── */}
       <section className="bg-brand-sky-tint">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
           <motion.div
             initial="hidden"
             animate="show"
@@ -72,8 +71,6 @@ export default function Reviews() {
                 : "ScrubFair is brand new in Winnipeg. We're earning our wall of reviews the right way \u2014 one careful visit at a time."}
             </p>
           </motion.div>
-
-          <ScrollHint />
         </div>
       </section>
 

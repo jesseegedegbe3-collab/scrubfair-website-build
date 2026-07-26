@@ -17,7 +17,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { ScrollHint } from "@/components/ScrollHint";
 import { api } from "../convex/_generated/api";
 
 const NEIGHBOURHOODS = [
@@ -136,7 +135,7 @@ export default function LeaveReview() {
     >
       {/* Hero */}
       <section className="bg-brand-sky-tint">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
           <motion.div
             initial="hidden"
             animate="show"
@@ -155,8 +154,6 @@ export default function LeaveReview() {
               sentences about the experience you had.
             </p>
           </motion.div>
-
-          <ScrollHint />
         </div>
       </section>
 

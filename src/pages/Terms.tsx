@@ -1,7 +1,6 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router";
 import { Mail, Phone, FileText, Sparkles } from "lucide-react";
-import { ScrollHint } from "@/components/ScrollHint";
 import { BRAND } from "@/lib/brand";
 
 const LAST_UPDATED = "July 26, 2026";
@@ -197,7 +196,7 @@ export function Terms() {
     <main id="main" className="bg-white">
       {/* Hero */}
       <section className="border-b border-slate-200 bg-brand-sky-tint">
-        <div className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-3xl px-4 pt-16 pb-3 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
@@ -217,8 +216,6 @@ export function Terms() {
               Last updated: <strong>{LAST_UPDATED}</strong>
             </p>
           </motion.div>
-
-          <ScrollHint />
         </div>
       </section>
 

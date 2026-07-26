@@ -11,7 +11,6 @@ import {
   Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ScrollHint } from "@/components/ScrollHint";
 import { IMAGES } from "@/lib/images";
 import { BRAND, SERVICES, TRUST_BADGES } from "@/lib/brand";
 
@@ -49,7 +48,7 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-white" />
         </div>
 
-        <div className="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 sm:pb-28 sm:pt-14 lg:px-8 lg:pt-20">
+        <div className="mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-6 sm:pb-14 sm:pt-14 lg:px-8 lg:pt-20">
           <motion.h1
             initial="hidden"
             animate="show"
@@ -124,14 +123,6 @@ export default function Home() {
             </span>
           </motion.div>
 
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.6 }}
-            className="mt-12 flex justify-center"
-          >
-            <ScrollHint />
-          </motion.div>
         </div>
       </section>
 

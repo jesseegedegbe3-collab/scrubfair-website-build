@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollHint } from "@/components/ScrollHint";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { IMAGES } from "@/lib/images";
@@ -107,7 +106,7 @@ export default function Contact() {
     >
       {/* ─────────── Page header ─────────── */}
       <section className="bg-brand-sky-tint">
-        <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
+        <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
           <motion.div
             initial="hidden"
             animate="show"
@@ -126,8 +125,6 @@ export default function Contact() {
               no-obligation quote.
             </p>
           </motion.div>
-
-          <ScrollHint />
         </div>
       </section>
 
