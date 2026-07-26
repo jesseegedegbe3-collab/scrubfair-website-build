@@ -8,10 +8,16 @@
   "theme_color": "#5CC0E8",
   "icons": [
     {
-      "src": "/logo.svg",
+      "src": "/scrubfair-icon.png",
       "sizes": "any",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/scrubfair-icon-sky.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
   ]
 }
