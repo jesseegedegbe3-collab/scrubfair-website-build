@@ -8,7 +8,7 @@
   "theme_color": "#5CC0E8",
   "icons": [
     {
-      "src": "/scrubfair-icon.png",
+      "src": "/scrubfair-tab-icon.png",
       "sizes": "any",
       "type": "image/png",
       "purpose": "any"
