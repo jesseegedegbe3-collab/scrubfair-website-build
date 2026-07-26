@@ -1,0 +1,23 @@
+{
+  "name": "ScrubFair — Winnipeg Cleaning",
+  "short_name": "ScrubFair",
+  "description": "Careful, locally-owned residential cleaning in Winnipeg.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#5CC0E8",
+  "icons": [
+    {
+      "src": "/scrubfair-favicon-circle.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/scrubfair-favicon-circle.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+const e=(t,a=1600,o=80)=>`https://images.unsplash.com/photo-${t}?auto=format&fit=crop&w=${a}&q=${o}`,c={hero:e("1556909114-f6e7ad7d3136",2200,82),standardSupplies:e("1583947581924-860bda6a26df",1400,82),deepKitchen:e("1565538810643-b5bdb714032a",1400,82),reviewBathroom:e("1552321554-5fefe8c9ef14",1400,82),contactInterior:e("1527515637462-cff94eecc1ac",1400,82)};export{c as I};

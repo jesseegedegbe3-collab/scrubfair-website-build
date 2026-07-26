@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="ScrubFair — Winnipeg's careful residential cleaning service">
+  <title>ScrubFair — Winnipeg's careful residential cleaning service</title>
+  <desc>A white share card with the ScrubFair sponge logo, bubble-letter wordmark, tagline, and scrubfair.ca domain.</desc>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#FFFFFF" />
+
+  <!-- Decorative pale-blue accents -->
+  <circle cx="1100" cy="80" r="110" fill="#E0F2F8" />
+  <circle cx="60" cy="560" r="150" fill="#E0F2F8" />
+  <circle cx="1140" cy="540" r="40" fill="#7FD8F5" opacity="0.45" />
+
+  <!-- Sponge blob (matches BrandLogo.tsx, scaled to ~360px tall) -->
+  <g transform="translate(190 130) scale(3.1)">
+    <path
+      d="M 35 38
+         C 30 18, 58 6, 86 8
+         C 105 9, 115 22, 110 33
+         C 122 33, 124 56, 108 66
+         C 116 72, 108 86, 88 86
+         C 70 90, 35 86, 25 64
+         C 18 50, 22 42, 35 38 Z"
+      fill="#5CC0E8"
+    />
+    <g fill="#FFFFFF" opacity="0.7">
+      <circle cx="48" cy="30" r="3.6" />
+      <circle cx="62" cy="48" r="2.4" />
+      <circle cx="78" cy="32" r="2" />
+      <circle cx="92" cy="50" r="2.8" />
+      <circle cx="58" cy="64" r="2" />
+      <circle cx="80" cy="70" r="3.2" />
+      <circle cx="42" cy="50" r="2.4" />
+      <circle cx="72" cy="20" r="1.6" />
+    </g>
+  </g>
+
+  <!-- Wordmark "scrubfair" — Fredoka rounded bubble display -->
+  <text x="555" y="290"
+        font-family='Fredoka, "Baloo 2", "Quicksand", "Comfortaa", "Nunito", system-ui, sans-serif'
+        font-weight="600" font-size="118"
+        fill="#0F172A">scrubfair</text>
+
+  <!-- Tagline -->
+  <text x="558" y="358"
+        font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-weight="600" font-size="34"
+        fill="#5CC0E8">Spotless homes. Zero hassle.</text>
+
+  <!-- Location badge -->
+  <g transform="translate(558, 410)">
+    <rect width="290" height="50" rx="25"
+          fill="#F5FBFE" stroke="#CFE6EF" stroke-width="1" />
+    <circle cx="28" cy="25" r="7" fill="#5CC0E8" />
+    <text x="48" y="32"
+          font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+          font-weight="600" font-size="20"
+          fill="#334155">Winnipeg, Manitoba, Canada</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="558" y1="495" x2="920" y2="495"
+        stroke="#E2E8F0" stroke-width="1.5" />
+
+  <!-- Domain -->
+  <text x="558" y="545"
+        font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-weight="800" font-size="30"
+        fill="#0F172A">scrubfair.ca</text>
+
+  <!-- Trust strip -->
+  <text x="558" y="583"
+        font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-weight="500" font-size="20"
+        fill="#64748B">Licensed &amp; Insured  ·  Satisfaction Guaranteed  ·  Locally Owned</text>
+</svg>
