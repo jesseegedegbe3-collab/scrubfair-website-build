@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" role="img" aria-label="ScrubFair — Winnipeg's careful residential cleaning service">
+  <title>ScrubFair — Winnipeg's careful residential cleaning service</title>
+  <desc>A white share card with the ScrubFair sponge logo, wordmark, tagline, and scrubfair.ca domain.</desc>
+
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#FFFFFF" />
+
+  <!-- Decorative pale-blue accents -->
+  <circle cx="1100" cy="80" r="110" fill="#E0F2F8" />
+  <circle cx="60" cy="560" r="150" fill="#E0F2F8" />
+  <circle cx="1140" cy="540" r="40" fill="#7FD8F5" opacity="0.45" />
+  <circle cx="980" cy="500" r="14" fill="#5CC0E8" opacity="0.35" />
+  <circle cx="930" cy="450" r="8" fill="#5CC0E8" opacity="0.25" />
+
+  <!-- Sponge shadow blob (deep blue, offset slightly down-right) -->
+  <path d="M 230 260
+           C 230 170, 330 110, 430 110
+           C 530 110, 590 180, 580 280
+           C 615 320, 580 420, 480 440
+           C 420 480, 290 470, 235 415
+           C 175 380, 175 305, 230 260 Z"
+        fill="#5CC0E8" />
+
+  <!-- Sponge top blob (sky blue, offset up-left for layered look) -->
+  <path d="M 195 240
+           C 195 155, 295 95, 395 95
+           C 495 95, 545 165, 535 265
+           C 570 305, 535 405, 435 425
+           C 375 465, 255 455, 200 400
+           C 140 365, 140 285, 195 240 Z"
+        fill="#7FD8F5" />
+
+  <!-- Speckles for sponge texture -->
+  <g fill="#FFFFFF" opacity="0.65">
+    <circle cx="245" cy="180" r="6" />
+    <circle cx="320" cy="155" r="4" />
+    <circle cx="390" cy="210" r="7" />
+    <circle cx="455" cy="180" r="3" />
+    <circle cx="305" cy="280" r="5" />
+    <circle cx="245" cy="320" r="6" />
+    <circle cx="375" cy="340" r="4" />
+    <circle cx="440" cy="290" r="5" />
+    <circle cx="290" cy="380" r="4" />
+    <circle cx="350" cy="220" r="3" />
+    <circle cx="420" cy="370" r="3" />
+  </g>
+
+  <!-- Wordmark "scrubfair" -->
+  <text x="560" y="285"
+        font-family="Nunito, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-weight="900" font-size="118"
+        fill="#0F172A" letter-spacing="-3">scrubfair</text>
+
+  <!-- Tagline -->
+  <text x="563" y="350"
+        font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-weight="600" font-size="34"
+        fill="#5CC0E8">Spotless homes. Zero hassle.</text>
+
+  <!-- Location badge -->
+  <g transform="translate(563, 405)">
+    <rect width="290" height="50" rx="25"
+          fill="#F5FBFE" stroke="#CFE6EF" stroke-width="1" />
+    <circle cx="28" cy="25" r="7" fill="#5CC0E8" />
+    <text x="48" y="32"
+          font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+          font-weight="600" font-size="20"
+          fill="#334155">Winnipeg, Manitoba, Canada</text>
+  </g>
+
+  <!-- Divider -->
+  <line x1="563" y1="490" x2="900" y2="490"
+        stroke="#E2E8F0" stroke-width="1.5" />
+
+  <!-- Domain -->
+  <text x="563" y="540"
+        font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-weight="800" font-size="30"
+        fill="#0F172A">scrubfair.ca</text>
+
+  <!-- Trust strip -->
+  <text x="563" y="578"
+        font-family="Inter, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
+        font-weight="500" font-size="20"
+        fill="#64748B">Licensed &amp; Insured  ·  Satisfaction Guaranteed  ·  Locally Owned</text>
+</svg>

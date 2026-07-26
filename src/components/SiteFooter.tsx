@@ -97,10 +97,24 @@ export function SiteFooter() {
           </div>
         </div>
 
-        <div className="mt-12 flex flex-col items-start justify-between gap-4 border-t border-slate-200 pt-8 text-xs text-slate-500 sm:flex-row sm:items-center">
+        <div className="mt-12 flex flex-col items-start justify-between gap-3 border-t border-slate-200 pt-8 text-xs text-slate-500 sm:flex-row sm:items-center">
           <p>
             &copy; {new Date().getFullYear()} {BRAND.name}. All rights reserved.
           </p>
+          <nav
+            aria-label="Legal"
+            className="flex items-center gap-3 text-xs text-slate-500"
+          >
+            <Link to="/privacy" className="hover:text-brand-deep">
+              Privacy Policy
+            </Link>
+            <span aria-hidden className="text-slate-300">
+              &middot;
+            </span>
+            <Link to="/terms" className="hover:text-brand-deep">
+              Terms of Service
+            </Link>
+          </nav>
           <p>
             Licensed &amp; Insured &middot; Serving Winnipeg, MB &middot;{" "}
             <a
