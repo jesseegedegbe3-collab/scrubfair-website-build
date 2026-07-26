@@ -86,7 +86,7 @@ export default function Services() {
                         ? "Clean, minimalist kitchen interior"
                         : "Cleaning supplies arranged on a surface"
                     }
-                    className="relative h-[420px] w-full rounded-2xl bg-brand-sky-tint object-cover shadow-lg"
+                    className="relative h-[540px] w-full rounded-2xl bg-brand-sky-tint object-cover shadow-lg"
                   />
                 </motion.div>
 
