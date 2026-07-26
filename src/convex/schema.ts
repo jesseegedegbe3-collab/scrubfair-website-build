@@ -46,6 +46,27 @@ const schema = defineSchema(
       ),
       createdAt: v.number(),
     }).index("by_createdAt", ["createdAt"]),
+
+    // ScrubFair: public customer reviews (open submission, immediate publish,
+    // manual moderation via the Convex dashboard if needed).
+    reviews: defineTable({
+      name: v.string(),
+      neighbourhood: v.string(),
+      service: v.union(
+        v.literal("Standard Cleaning"),
+        v.literal("Deep Cleaning"),
+      ),
+      rating: v.union(
+        v.literal(1),
+        v.literal(2),
+        v.literal(3),
+        v.literal(4),
+        v.literal(5),
+      ),
+      body: v.string(),
+      source: v.optional(v.string()),
+      createdAt: v.number(),
+    }).index("by_createdAt", ["createdAt"]),
   },
   {
     schemaValidation: false,

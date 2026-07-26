@@ -1,9 +1,11 @@
 import { Link } from "react-router";
 import { motion } from "framer-motion";
-import { ArrowRight, Star, Quote, Mail } from "lucide-react";
+import { useQuery } from "convex/react";
+import { ArrowRight, Star, Quote, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IMAGES } from "@/lib/images";
 import { BRAND } from "@/lib/brand";
+import { api } from "../convex/_generated/api";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -14,9 +16,9 @@ const fadeUp = {
   }),
 };
 
-// Shape for a REAL Testimonial. As the first reviews come in, replace the
-// placeholder section below with a `REAL_REVIEWS: Testimonial[]` array and
-// render it inside the same grid. The card UI is already shaped for it.
+// Shape of a REAL review row stored in the `reviews` Convex table.
+// Mirrors the database schema; used to render `ReviewCard` either from
+// live data (useQuery) or from a static fixture.
 export type Testimonial = {
   name: string;
   neighbourhood: string;
@@ -26,6 +28,9 @@ export type Testimonial = {
 };
 
 export default function Reviews() {
+  const real = useQuery(api.reviewsList.listApproved) ?? [];
+  const hasReviews = real.length > 0;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -46,13 +51,24 @@ export default function Reviews() {
               Reviews
             </p>
             <h1 className="mt-3 text-4xl font-bold text-brand-ink sm:text-5xl">
-              Reviews,{" "}
-              <span className="text-brand-deep">coming soon.</span>
+              {hasReviews ? (
+                <>
+                  What Winnipeg families are saying.{" "}
+                  <span className="text-brand-deep">
+                    {real.length} review{real.length === 1 ? "" : "s"} and counting.
+                  </span>
+                </>
+              ) : (
+                <>
+                  Reviews,{" "}
+                  <span className="text-brand-deep">coming soon.</span>
+                </>
+              )}
             </h1>
             <p className="mt-5 text-lg text-brand-slate">
-              ScrubFair is brand new in Winnipeg. We're earning our wall of
-              reviews the right way — one careful visit at a time. Book a
-              clean and yours could be the first story here.
+              {hasReviews
+                ? "Honest feedback from across Winnipeg — every review on this page was left by a real customer, after a real visit."
+                : "ScrubFair is brand new in Winnipeg. We're earning our wall of reviews the right way \u2014 one careful visit at a time."}
             </p>
           </motion.div>
         </div>
@@ -77,27 +93,28 @@ export default function Reviews() {
               </h2>
               <div className="mt-6 space-y-4 text-lg text-brand-slate">
                 <p>
-                  Hi, I'm Evelyn — the founder of ScrubFair. I started this
-                  business with a simple idea: a cleaning service should feel
-                  the way it feels when a really thoughtful friend tidies your
-                  home. Quiet, careful, and without making you feel like you
-                  need to apologise for the mess.
+                  Hi, I&rsquo;m Evelyn &mdash; the founder of ScrubFair. I
+                  started this business with a simple idea: a cleaning service
+                  should feel the way it feels when a really thoughtful friend
+                  tidies your home. Quiet, careful, and without making you
+                  feel like you need to apologise for the mess.
                 </p>
                 <p>
                   Winnipeg has given me a lot. I wanted to build a small
-                  business that gives back — to the families who let us into
-                  their homes, and to the neighbourhoods we work in. That
+                  business that gives back &mdash; to the families who let us
+                  into their homes, and to the neighbourhoods we work in. That
                   means showing up on time, doing the work the right way, and
-                  never leaving a job until I'd be happy to see it myself.
+                  never leaving a job until I&rsquo;d be happy to see it
+                  myself.
                 </p>
                 <p>
-                  We're new, which means every visit matters. If you let us
-                  into your home, I want to earn your trust — and your review
-                  — one visit at a time.
+                  We&rsquo;re new, which means every visit matters. If you
+                  let us into your home, I want to earn your trust &mdash; and
+                  your review &mdash; one visit at a time.
                 </p>
               </div>
               <p className="mt-6 text-base font-semibold text-brand-ink">
-                — Evelyn Egedegbe, Founder
+                &mdash; Evelyn Egedegbe, Founder
               </p>
             </div>
 
@@ -113,7 +130,7 @@ export default function Reviews() {
         </div>
       </section>
 
-      {/* ─────────── Earn your first review (placeholder cards) ─────────── */}
+      {/* ─────────── Reviews grid (live data or empty placeholders) ─────────── */}
       <section className="bg-brand-sky-tint">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
           <motion.div
@@ -124,22 +141,36 @@ export default function Reviews() {
             className="mx-auto max-w-2xl text-center"
           >
             <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
-              Be the first
+              {hasReviews ? "What customers are saying" : "Be the first"}
             </p>
             <h2 className="mt-3 text-3xl font-bold text-brand-ink sm:text-4xl">
-              Earn your first review here.
+              {hasReviews
+                ? "Real stories from Winnipeg homes."
+                : "Earn your first review here."}
             </h2>
             <p className="mt-4 text-lg text-brand-slate">
-              Three empty slots, ready for the first Winnipeg families who
-              trust ScrubFair with a clean. Once you've experienced us, your
-              story goes right here.
+              {hasReviews
+                ? "Every review below was left by a real customer, after a real cleaning. Newest first."
+                : "Three empty slots, ready for the first Winnipeg families who trust ScrubFair with a clean. After your visit, your story goes right here."}
             </p>
           </motion.div>
 
-          <div className="mt-14 grid gap-6 md:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <ReviewPlaceholderCard key={i} index={i - 1} />
-            ))}
+          <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {hasReviews
+              ? real.map((review, i) => (
+                  <ReviewCard
+                    key={review._id}
+                    review={{
+                      name: review.name,
+                      neighbourhood: review.neighbourhood,
+                      rating: review.rating,
+                      body: review.body,
+                      service: review.service,
+                    }}
+                    index={i}
+                  />
+                ))
+              : [1, 2, 3].map((i) => <ReviewPlaceholderCard key={i} index={i - 1} />)}
           </div>
 
           <div className="mt-14 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -148,9 +179,9 @@ export default function Reviews() {
               size="lg"
               className="h-14 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover"
             >
-              <Link to="/contact">
-                Book your clean
-                <ArrowRight className="ml-2 size-5" aria-hidden />
+              <Link to="/leave-review">
+                <Sparkles className="mr-2 size-5" aria-hidden />
+                Leave your own review
               </Link>
             </Button>
             <Button
@@ -168,6 +199,69 @@ export default function Reviews() {
         </div>
       </section>
     </motion.div>
+  );
+}
+
+function ReviewCard({
+  review,
+  index,
+}: {
+  review: Testimonial;
+  index: number;
+}) {
+  const initials = review.name
+    .split(/\s+/)
+    .map((p) => p[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  return (
+    <motion.article
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true, amount: 0.4 }}
+      variants={fadeUp}
+      custom={index}
+      className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-brand"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div
+          aria-hidden
+          className="flex size-11 shrink-0 items-center justify-center rounded-full bg-brand-deep text-sm font-bold tracking-wide text-white ring-2 ring-white"
+        >
+          {initials || "?"}
+        </div>
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-brand-slate">
+          {review.neighbourhood}
+        </span>
+      </div>
+
+      <div
+        className="mt-4 flex gap-1 text-brand-deep"
+        aria-label={`Rated ${review.rating} out of 5 stars`}
+      >
+        {Array.from({ length: 5 }).map((_, s) => (
+          <Star
+            key={s}
+            className={`size-4 ${
+              s < review.rating ? "fill-current" : "text-slate-300"
+            }`}
+            aria-hidden
+          />
+        ))}
+      </div>
+
+      <p className="mt-3 flex-1 text-sm leading-relaxed text-brand-slate">
+        &ldquo;{review.body}&rdquo;
+      </p>
+
+      <div className="mt-6 border-t border-slate-200 pt-4">
+        <p className="text-sm font-semibold text-brand-ink">{review.name}</p>
+        <p className="mt-0.5 text-xs text-brand-slate">{review.service} client</p>
+      </div>
+    </motion.article>
   );
 }
 
@@ -196,7 +290,7 @@ function ReviewPlaceholderCard({ index }: { index: number }) {
         ))}
       </div>
       <p className="mt-4 flex-1 text-sm text-brand-slate">
-        &ldquo;Your story goes here — we&rsquo;re earning these one
+        &ldquo;Your story goes here &mdash; we&rsquo;re earning these one
         careful visit at a time.&rdquo;
       </p>
       <div className="mt-6 border-t border-slate-200 pt-4">

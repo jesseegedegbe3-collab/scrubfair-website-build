@@ -14,6 +14,7 @@ const Home = lazy(() => import("./pages/Landing.tsx"));
 const Services = lazy(() => import("./pages/Services.tsx"));
 const Reviews = lazy(() => import("./pages/Reviews.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
+const LeaveReview = lazy(() => import("./pages/LeaveReview.tsx"));
 const Privacy = lazy(() => import("./pages/Privacy.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
 const AuthPage = lazy(() => import("./pages/Auth.tsx"));
@@ -132,6 +133,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/services" element={<Services />} />
                 <Route path="/reviews" element={<Reviews />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/leave-review" element={<LeaveReview />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
               </Route>
