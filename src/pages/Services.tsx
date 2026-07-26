@@ -72,7 +72,7 @@ export default function Services() {
                 }`}
               >
                 <div className="relative">
-                  <div className="absolute -inset-4 -z-10 rounded-3xl bg-brand-sky-soft" />
+                  <div className="absolute -inset-4 -z-10 rounded-3xl bg-brand-sky-tint" />
                   <img
                     src={isDeep ? IMAGES.deepKitchen : IMAGES.standardSupplies}
                     alt={
