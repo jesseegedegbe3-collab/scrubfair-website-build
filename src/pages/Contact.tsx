@@ -152,7 +152,7 @@ export default function Contact() {
                       <Field
                         id="name"
                         label="Your name"
-                        placeholder="Evelyne Gedegbe"
+                        placeholder="Evelyn Egedegbe"
                         error={errors.name?.message}
                         registration={register("name")}
                         autoComplete="name"
