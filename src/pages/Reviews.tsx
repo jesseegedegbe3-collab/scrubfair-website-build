@@ -190,10 +190,10 @@ export default function Reviews() {
               variant="outline"
               className="h-14 border-brand-deep px-8 text-base text-brand-deep hover:bg-white"
             >
-              <a href={`mailto:${BRAND.email}`}>
+              <Link to="/contact">
                 <Mail className="mr-2 size-5" aria-hidden />
                 Email us
-              </a>
+              </Link>
             </Button>
           </div>
         </div>

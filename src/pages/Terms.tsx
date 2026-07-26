@@ -61,12 +61,12 @@ const SECTIONS = [
         know within <strong>24 hours</strong> of the clean and we will
         come back to make it right at no additional charge. Just send a
         quick photo and a note to{" "}
-        <a
-          href={`mailto:${BRAND.email}`}
+        <Link
+          to="/contact"
           className="font-semibold text-brand-deep underline-offset-4 hover:underline"
         >
           {BRAND.email}
-        </a>{" "}
+        </Link>{" "}
         or text us at{" "}
         <a
           href={`tel:${BRAND.phoneTel}`}
@@ -284,12 +284,12 @@ export function Terms() {
                       <p className="text-xs font-semibold tracking-wide text-brand-slate uppercase">
                         Email
                       </p>
-                      <a
-                        href={`mailto:${BRAND.email}`}
+                      <Link
+                        to="/contact"
                         className="text-base font-semibold text-brand-ink hover:text-brand-deep"
                       >
                         {BRAND.email}
-                      </a>
+                      </Link>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">

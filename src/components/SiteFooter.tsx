@@ -40,13 +40,13 @@ export function SiteFooter() {
               </a>
             </div>
             <div className="mt-2 flex items-center gap-4 text-sm">
-              <a
-                href={`mailto:${BRAND.email}`}
+              <Link
+                to="/contact"
                 className="inline-flex items-center gap-2 text-brand-slate hover:text-brand-deep"
               >
                 <Mail className="size-4" aria-hidden />
                 {BRAND.email}
-              </a>
+              </Link>
             </div>
             <div className="mt-2 flex items-center gap-4 text-sm">
               <span className="inline-flex items-center gap-2 text-brand-slate">
@@ -117,12 +117,12 @@ export function SiteFooter() {
           </nav>
           <p>
             Licensed &amp; Insured &middot; Serving Winnipeg, MB &middot;{" "}
-            <a
-              href={`mailto:${BRAND.email}`}
+            <Link
+              to="/contact"
               className="hover:text-brand-deep"
             >
               {BRAND.email}
-            </a>
+            </Link>
           </p>
         </div>
       </div>

@@ -172,12 +172,12 @@ const SECTIONS = [
         </p>
         <p>
           To exercise any of these rights, email{" "}
-          <a
-            href={`mailto:${BRAND.email}?subject=Privacy%20request`}
+          <Link
+            to="/contact"
             className="font-semibold text-brand-deep underline-offset-4 hover:underline"
           >
             {BRAND.email}
-          </a>{" "}
+          </Link>{" "}
           with the subject line "Privacy request." We will acknowledge
           your request within <strong>5 business days</strong> and respond
           substantively within <strong>30 days</strong>, as required by
@@ -306,12 +306,12 @@ export function Privacy() {
                       <p className="text-xs font-semibold tracking-wide text-brand-slate uppercase">
                         Email
                       </p>
-                      <a
-                        href={`mailto:${BRAND.email}`}
+                      <Link
+                        to="/contact"
                         className="text-base font-semibold text-brand-ink hover:text-brand-deep"
                       >
                         {BRAND.email}
-                      </a>
+                      </Link>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { motion } from "framer-motion";
 import { useAction } from "convex/react";
 import { z } from "zod";
@@ -283,8 +284,8 @@ export default function Contact() {
                       </a>
                     </li>
                     <li>
-                      <a
-                        href={`mailto:${BRAND.email}`}
+                      <Link
+                        to="/contact"
                         className="group flex items-start gap-4"
                       >
                         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-brand-deep shadow-sm">
@@ -298,7 +299,7 @@ export default function Contact() {
                             {BRAND.email}
                           </span>
                         </span>
-                      </a>
+                      </Link>
                     </li>
                     <li>
                       <div className="flex items-start gap-4">
