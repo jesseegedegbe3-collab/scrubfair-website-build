@@ -40,7 +40,7 @@ export function BrandLogo({
       loading="eager"
       draggable={false}
       className={cn(
-        "select-none h-auto bg-brand-sky-tint",
+        "select-none h-auto",
         className,
       )}
     />
