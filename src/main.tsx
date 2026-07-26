@@ -100,6 +100,9 @@ function RouteSyncer() {
       { type: "iframe-route-change", path: location.pathname },
       "*",
     );
+    // Scroll to the top of the page whenever a new route is entered.
+    // Plain two-arg form is unambiguous and always instant across browsers.
+    window.scrollTo(0, 0);
   }, [location.pathname]);
 
   useEffect(() => {
