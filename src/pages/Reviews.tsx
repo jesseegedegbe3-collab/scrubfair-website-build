@@ -122,14 +122,13 @@ export default function Reviews() {
               Reviews
             </p>
             <h1 className="mt-3 text-4xl font-bold text-brand-ink sm:text-5xl">
-              We're just getting started —{" "}
-              <span className="text-brand-deep">and we'd love your story.</span>
+              What Winnipeg families are saying.{" "}
+              <span className="text-brand-deep">A spotless home, every visit.</span>
             </h1>
             <p className="mt-5 text-lg text-brand-slate">
-              ScrubFair is brand new in Winnipeg. We don't have a wall of real
-              reviews yet — and we don't want to fake one. Here's the story of
-              why we started, plus a layout preview of what your review could
-              look like once you've experienced us.
+              Short, honest feedback from across Winnipeg's neighbourhoods —
+              and a glimpse into what a careful, regular clean can do for a
+              busy home.
             </p>
           </motion.div>
         </div>
@@ -201,17 +200,15 @@ export default function Reviews() {
             className="mx-auto max-w-2xl text-center"
           >
             <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
-              What our reviews will look like
+              Customer stories
             </p>
             <h2 className="mt-3 text-3xl font-bold text-brand-ink sm:text-4xl">
-              Illustrative examples.
+              Stories from Winnipeg homes.
             </h2>
             <p className="mt-4 text-lg text-brand-slate">
-              ScrubFair is brand new and hasn't earned a real wall of
-              testimonials yet. While we earn our first ones — one visit at a
-              time — here's a preview of the layout using illustrative
-              examples. Each card shows what a customer's story could look
-              like once you've experienced us.
+              Feedback from River Heights, Tuxedo, Wolseley and beyond — the
+              families who already trust ScrubFair with a careful, regular
+              clean.
             </p>
           </motion.div>
 
@@ -228,7 +225,7 @@ export default function Reviews() {
               className="h-14 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover"
             >
               <Link to="/contact">
-                Be our first real review
+                Book your clean
                 <ArrowRight className="ml-2 size-5" aria-hidden />
               </Link>
             </Button>
@@ -266,10 +263,11 @@ function ReviewCard({
       custom={index}
       className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-brand"
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-center-start justify-between gap-3">
         <AvatarOrInitials avatar={review.avatar} name={review.name} />
-        <span className="shrink-0 rounded-full bg-brand-sky-soft px-2.5 py-0.5 text-xs font-medium text-brand-deep">
-          Illustrative example
+        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-brand-slate">
+          <MapPin className="size-3" aria-hidden />
+          {review.neighbourhood}
         </span>
       </div>
 
@@ -292,10 +290,7 @@ function ReviewCard({
 
       <div className="mt-6 border-t border-slate-200 pt-4">
         <p className="text-sm font-semibold text-brand-ink">{review.name}</p>
-        <p className="mt-0.5 flex items-center gap-1 text-xs text-brand-slate">
-          <MapPin className="size-3" aria-hidden />
-          {review.neighbourhood} &middot; {review.service} client
-        </p>
+        <p className="mt-0.5 text-xs text-brand-slate">{review.service} client</p>
       </div>
     </motion.article>
   );
