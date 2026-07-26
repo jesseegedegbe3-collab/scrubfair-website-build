@@ -71,13 +71,7 @@ export default function Services() {
                   reverse ? "lg:[&>div:first-child]:order-2" : ""
                 }`}
               >
-                <motion.div
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, amount: 0.3 }}
-                  variants={fadeUp}
-                  className="relative"
-                >
+                <div className="relative">
                   <div className="absolute -inset-4 -z-10 rounded-3xl bg-brand-sky-soft" />
                   <img
                     src={isDeep ? IMAGES.deepKitchen : IMAGES.standardSupplies}
@@ -86,9 +80,9 @@ export default function Services() {
                         ? "Clean, minimalist kitchen interior"
                         : "Cleaning supplies arranged on a surface"
                     }
-                    className="relative h-[540px] w-full rounded-2xl bg-brand-sky-tint object-cover shadow-lg"
+                    className="relative h-[640px] w-full rounded-2xl bg-brand-sky-tint object-cover shadow-lg"
                   />
-                </motion.div>
+                </div>
 
                 <motion.div
                   initial="hidden"
