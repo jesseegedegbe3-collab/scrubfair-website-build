@@ -10,16 +10,17 @@ import { v } from "convex/values";
 // On submit:
 //   1. Persist the submission to the `contactSubmissions` table (always).
 //   2. Send an email to the business via Resend (if RESEND_API_KEY is set).
-//   3. Send an SMS to the business via Twilio (if TWILIO_* env vars are set).
+//   3. Send a Telegram message to the business (if TELEGRAM_BOT_TOKEN and
+//      TELEGRAM_CHAT_ID are set).
 //
-// If Resend / Twilio credentials are missing in the environment, the action
-// logs a warning and still returns success — the form works in dev/preview
-// and the submission is captured for follow-up. This keeps the public form
-// usable before the business finishes wiring up the email + SMS providers.
+// If Resend / Telegram credentials are missing in the environment, the
+// action logs a warning and still returns success — the form works in
+// dev/preview and the submission is captured for follow-up. This keeps the
+// public form usable before the business finishes wiring up the email +
+// chat providers.
 // ============================================================================
 
 const NOTIFY_EMAIL = "evelynegedegbe3@gmail.com";
-const NOTIFY_SMS = "+12049528685"; // 204-952-8685
 
 export const submitContactForm = action({
   args: {
@@ -44,10 +45,6 @@ export const submitContactForm = action({
     });
 
     const hasResend = !!process.env.RESEND_API_KEY;
-    const hasTwilio =
-      !!process.env.TWILIO_ACCOUNT_SID &&
-      !!process.env.TWILIO_AUTH_TOKEN &&
-      !!process.env.TWILIO_FROM_NUMBER;
 
     const warnings: string[] = [];
 
@@ -82,36 +79,51 @@ export const submitContactForm = action({
       warnings.push("email: credentials not configured");
     }
 
-    // 3. Send SMS via Twilio (if configured)
-    if (hasTwilio) {
+    // 3. Send Telegram message (if configured)
+    const hasTelegram =
+      !!process.env.TELEGRAM_BOT_TOKEN && !!process.env.TELEGRAM_CHAT_ID;
+
+    if (hasTelegram) {
       try {
-        const twilioModule = await import("twilio");
-        const twilio = twilioModule.default(
-          process.env.TWILIO_ACCOUNT_SID,
-          process.env.TWILIO_AUTH_TOKEN,
-        );
-        const smsBody = buildSmsText(args);
-        await twilio.messages.create({
-          from: process.env.TWILIO_FROM_NUMBER,
-          to: NOTIFY_SMS,
-          body: smsBody,
+        const botToken = process.env.TELEGRAM_BOT_TOKEN;
+        const chatId = process.env.TELEGRAM_CHAT_ID;
+        const text = buildTelegramText(args);
+        const url = `https://api.telegram.org/bot${botToken}/sendMessage`;
+        const resp = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: chatId,
+            text,
+            parse_mode: "HTML",
+            disable_web_page_preview: true,
+          }),
         });
+        const data = (await resp.json().catch(() => null)) as
+          | { ok?: boolean; description?: string }
+          | null;
+        if (!resp.ok || (data && data.ok === false)) {
+          const errMsg = data?.description ?? `HTTP ${resp.status}`;
+          console.warn("[contact] Telegram send failed:", errMsg);
+          warnings.push(`telegram: ${errMsg}`);
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        console.warn("[contact] Twilio send failed:", msg);
-        warnings.push(`sms: ${msg}`);
+        console.warn("[contact] Telegram send failed:", msg);
+        warnings.push(`telegram: ${msg}`);
       }
     } else {
       console.warn(
-        "[contact] Twilio credentials not set \u2014 SMS notification skipped.",
+        "[contact] TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set \u2014 Telegram notification skipped.",
       );
-      warnings.push("sms: credentials not configured");
+      warnings.push("telegram: credentials not configured");
     }
 
     return {
       success: true,
       emailSent: hasResend && !warnings.some((w) => w.startsWith("email:")),
-      smsSent: hasTwilio && !warnings.some((w) => w.startsWith("sms:")),
+      telegramSent:
+        hasTelegram && !warnings.some((w) => w.startsWith("telegram:")),
       warnings,
     };
   },
@@ -177,12 +189,28 @@ function buildEmailHtml(args: {
   `;
 }
 
-function buildSmsText(args: {
+function buildTelegramText(args: {
   name: string;
+  email: string;
+  phone?: string;
   message: string;
+  source?: string;
 }): string {
-  const summary = args.message.trim().replace(/\s+/g, " ");
-  const truncated =
-    summary.length > 140 ? summary.slice(0, 137) + "..." : summary;
-  return `ScrubFair: new lead from ${args.name} \u2014 "${truncated}"`;
+  // Telegram HTML mode only requires & < > to be escaped in user-provided text.
+  const safe = (s: string) =>
+    s.replace(/[&<>]/g, (c) =>
+      c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;",
+    );
+  const parts = [
+    "<b>New ScrubFair quote request</b>",
+    "",
+    `<b>Name:</b> ${safe(args.name)}`,
+    `<b>Email:</b> ${safe(args.email)}`,
+    `<b>Phone:</b> ${args.phone ? safe(args.phone) : "\u2014"}`,
+  ];
+  if (args.source) parts.push(`<b>Source:</b> ${safe(args.source)}`);
+  parts.push("", "<b>Message:</b>", safe(args.message));
+  // Telegram's hard limit is 4096 chars per message; trim defensively.
+  const text = parts.join("\n");
+  return text.length > 4000 ? text.slice(0, 3997) + "..." : text;
 }
