@@ -11,7 +11,6 @@ import {
   Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BrandLogo } from "@/components/BrandLogo";
 import { IMAGES } from "@/lib/images";
 import { BRAND, SERVICES, TRUST_BADGES } from "@/lib/brand";
 
@@ -49,23 +48,13 @@ export default function Home() {
           <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-white" />
         </div>
 
-        <div className="mx-auto max-w-7xl px-4 pb-20 pt-12 sm:px-6 sm:pb-28 sm:pt-20 lg:px-8 lg:pt-28">
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            custom={0}
-            className="flex justify-center sm:justify-start"
-          >
-            <BrandLogo size={56} />
-          </motion.div>
-
+        <div className="mx-auto max-w-7xl px-4 pb-20 pt-10 sm:px-6 sm:pb-28 sm:pt-14 lg:px-8 lg:pt-20">
           <motion.h1
             initial="hidden"
             animate="show"
             variants={fadeUp}
-            custom={1}
-            className="mt-8 max-w-3xl text-4xl font-extrabold leading-[1.05] text-brand-ink sm:mt-10 sm:text-5xl lg:text-6xl"
+            custom={0}
+            className="max-w-3xl text-4xl font-extrabold leading-[1.05] text-brand-ink sm:text-5xl lg:text-6xl"
           >
             A spotless home,
             <br className="hidden sm:block" />{" "}
@@ -78,7 +67,7 @@ export default function Home() {
             initial="hidden"
             animate="show"
             variants={fadeUp}
-            custom={2}
+            custom={1}
             className="mt-5 max-w-2xl text-lg text-brand-slate sm:text-xl"
           >
             Winnipeg's careful, locally-owned cleaning service. Walk in to a
@@ -90,7 +79,7 @@ export default function Home() {
             initial="hidden"
             animate="show"
             variants={fadeUp}
-            custom={3}
+            custom={2}
             className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
           >
             <Button
@@ -117,7 +106,7 @@ export default function Home() {
             initial="hidden"
             animate="show"
             variants={fadeUp}
-            custom={4}
+            custom={3}
             className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-brand-slate"
           >
             <span className="inline-flex items-center gap-2">
