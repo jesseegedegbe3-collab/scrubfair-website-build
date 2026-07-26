@@ -27,7 +27,7 @@ export function BrandLogo({
   inverted = false,
   ariaLabel = "ScrubFair",
 }: BrandLogoProps) {
-  const src = inverted ? "/scrubfair-logo-sky.png" : "/scrubfair-logo.png";
+  const src = inverted ? "/scrubfair-logo-sky.png?v=2" : "/scrubfair-logo.png?v=2";
 
   return (
     <img
