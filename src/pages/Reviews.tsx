@@ -111,7 +111,7 @@ export default function Reviews() {
               <img
                 src={IMAGES.reviewBathroom}
                 alt="Clean, calm bathroom interior"
-                className="relative h-[460px] w-full rounded-2xl object-cover shadow-lg"
+                className="relative h-[460px] w-full rounded-2xl bg-brand-sky-tint object-cover shadow-lg"
               />
             </div>
           </motion.div>

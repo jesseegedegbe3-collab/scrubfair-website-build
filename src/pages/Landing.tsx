@@ -44,7 +44,7 @@ export default function Home() {
           <img
             src={IMAGES.hero}
             alt=""
-            className="h-full w-full object-cover"
+            className="h-full w-full bg-brand-sky-tint object-cover"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-white/85 via-white/70 to-white" />
         </div>
@@ -203,7 +203,7 @@ export default function Home() {
                         : IMAGES.deepKitchen
                     }
                     alt=""
-                    className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    className="h-full w-full bg-brand-sky-tint object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
                 <div className="p-6 sm:p-8">
@@ -300,7 +300,7 @@ export default function Home() {
               <img
                 src={IMAGES.deepKitchen}
                 alt="Clean, minimalist kitchen interior"
-                className="relative h-[480px] w-full rounded-2xl object-cover shadow-lg"
+                className="relative h-[480px] w-full rounded-2xl bg-brand-sky-tint object-cover shadow-lg"
               />
             </div>
           </div>

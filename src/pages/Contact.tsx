@@ -324,7 +324,7 @@ export default function Contact() {
                     <img
                       src={IMAGES.contactInterior}
                       alt="Clean, calm interior"
-                      className="h-56 w-full object-cover"
+                      className="h-56 w-full bg-brand-sky-tint object-cover"
                     />
                   </div>
                 </div>

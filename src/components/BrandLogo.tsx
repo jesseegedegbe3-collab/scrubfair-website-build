@@ -23,12 +23,15 @@ export function BrandLogo({
 }: BrandLogoProps) {
   const wordmarkColor = inverted ? "#ffffff" : "#5CC0E8";
   const height = size;
-  const width = size * (320 / 112); // preserve the natural aspect ratio
+  // viewBox is 400 × 112 — wide enough that the wordmark "scrubfair"
+  // (9 chars at fontSize 64) can never overflow horizontally, even if a
+  // heavier fallback font is substituted by the browser.
+  const width = size * (400 / 112);
 
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
-      viewBox="0 0 320 112"
+      viewBox="0 0 400 112"
       width={width}
       height={height}
       role="img"
@@ -64,7 +67,11 @@ export function BrandLogo({
         <circle cx="76" cy="36" r="1.4" />
       </g>
 
-      {/* Wordmark — rounded sans-serif, heavy weight */}
+      {/* Wordmark — rounded sans-serif, heavy weight. textLength forces the
+         glyph row to a known width so even with a fat fallback font the
+         wordmark can never overflow the 400-wide viewBox. lengthAdjust
+         only adjusts letter spacing, not glyph shapes, so the letterforms
+         stay natural. */}
       <text
         x="120"
         y="78"
@@ -72,7 +79,9 @@ export function BrandLogo({
         fontFamily='"Nunito", "Plus Jakarta Sans", "Quicksand", system-ui, sans-serif'
         fontWeight={900}
         fontSize={64}
-        letterSpacing="-2"
+        textLength="260"
+        lengthAdjust="spacing"
+        letterSpacing="-1"
         fill={wordmarkColor}
       >
         scrubfair
