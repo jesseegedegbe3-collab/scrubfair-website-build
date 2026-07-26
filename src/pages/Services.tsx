@@ -7,6 +7,7 @@ import {
   Home as HomeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScrollHint } from "@/components/ScrollHint";
 import { IMAGES } from "@/lib/images";
 import { SERVICES } from "@/lib/brand";
 
@@ -48,6 +49,8 @@ export default function Services() {
               today — and you can always switch later.
             </p>
           </motion.div>
+
+          <ScrollHint />
         </div>
       </section>
 

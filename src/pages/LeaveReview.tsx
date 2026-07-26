@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { ScrollHint } from "@/components/ScrollHint";
 import { api } from "../convex/_generated/api";
 
 const NEIGHBOURHOODS = [
@@ -154,6 +155,8 @@ export default function LeaveReview() {
               sentences about the experience you had.
             </p>
           </motion.div>
+
+          <ScrollHint />
         </div>
       </section>
 

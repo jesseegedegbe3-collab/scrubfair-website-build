@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useQuery } from "convex/react";
 import { ArrowRight, Star, Quote, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ScrollHint } from "@/components/ScrollHint";
 import { IMAGES } from "@/lib/images";
 import { BRAND } from "@/lib/brand";
 import { api } from "../convex/_generated/api";
@@ -66,11 +67,13 @@ export default function Reviews() {
               )}
             </h1>
             <p className="mt-5 text-lg text-brand-slate">
-              {hasReviews
+              {              hasReviews
                 ? "Honest feedback from across Winnipeg — every review on this page was left by a real customer, after a real visit."
                 : "ScrubFair is brand new in Winnipeg. We're earning our wall of reviews the right way \u2014 one careful visit at a time."}
             </p>
           </motion.div>
+
+          <ScrollHint />
         </div>
       </section>
 

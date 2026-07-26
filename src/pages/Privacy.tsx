@@ -1,6 +1,7 @@
 import { motion } from "framer-motion";
 import { Link } from "react-router";
 import { Mail, Phone, ShieldCheck, FileText } from "lucide-react";
+import { ScrollHint } from "@/components/ScrollHint";
 import { BRAND } from "@/lib/brand";
 
 const LAST_UPDATED = "July 26, 2026";
@@ -249,6 +250,8 @@ export function Privacy() {
               Last updated: <strong>{LAST_UPDATED}</strong>
             </p>
           </motion.div>
+
+          <ScrollHint />
         </div>
       </section>
 
