@@ -24,6 +24,10 @@ import { v } from "convex/values";
 // ============================================================================
 
 const NOTIFY_EMAIL = "contact@scrubfair.ca";
+
+// Personal backup inbox — gets a carbon copy of every review so the
+// business owner also gets notified.
+const NOTIFY_EMAIL_CC = "evelynegedegbe3@gmail.com";
 const RESEND_FALLBACK_FROM = "ScrubFair <onboarding@resend.dev>";
 
 export const submitReview = action({
@@ -77,6 +81,7 @@ export const submitReview = action({
         const result = await resend.emails.send({
           from: configuredFrom,
           to: NOTIFY_EMAIL,
+          cc: [NOTIFY_EMAIL_CC],
           subject,
           html,
           text,
@@ -112,6 +117,7 @@ export const submitReview = action({
             const fb = await resend.emails.send({
               from: RESEND_FALLBACK_FROM,
               to: NOTIFY_EMAIL,
+              cc: [NOTIFY_EMAIL_CC],
               subject,
               html,
               text,

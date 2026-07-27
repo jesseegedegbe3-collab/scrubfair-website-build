@@ -30,6 +30,11 @@ import { v } from "convex/values";
 
 const NOTIFY_EMAIL = "contact@scrubfair.ca";
 
+// Personal backup inbox — gets a carbon copy of every submission so the
+// business owner also gets notified even if the contact@scrubfair.ca alias
+// is misrouted or out of office.
+const NOTIFY_EMAIL_CC = "evelynegedegbe3@gmail.com";
+
 // The verified-by-default Resend sender envelope. Used as the `from` when
 // the business hasn't yet verified their own sending domain, so the
 // notification still reaches the business.
@@ -77,6 +82,7 @@ export const submitContactForm = action({
         const result = await resend.emails.send({
           from: configuredFrom,
           to: NOTIFY_EMAIL,
+          cc: [NOTIFY_EMAIL_CC],
           replyTo: args.email,
           subject,
           html,
@@ -125,6 +131,7 @@ export const submitContactForm = action({
             const fallback = await resend.emails.send({
               from: RESEND_FALLBACK_FROM,
               to: NOTIFY_EMAIL,
+              cc: [NOTIFY_EMAIL_CC],
               replyTo: args.email,
               subject,
               html,
