@@ -7,184 +7,186 @@ import {
   Home as HomeIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { IMAGES } from "@/lib/images";
 import { SERVICES } from "@/lib/brand";
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
+  hidden: { opacity: 0, y: 10 },
   show: (i: number = 0) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] as const },
+    transition: {
+      duration: 0.4,
+      delay: i * 0.05,
+      ease: [0.22, 1, 0.36, 1] as const,
+    },
   }),
 };
 
 export default function Services() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white"
-    >
-      {/* ─────────── Page header ─────────── */}
-      <section className="bg-brand-sky-tint">
-        <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            className="mx-auto max-w-3xl text-center"
-          >
-            <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
-              Services
-            </p>
-            <h1 className="mt-3 text-4xl font-bold text-brand-ink sm:text-5xl">
-              Cleaning built around you, not a checklist.
-            </h1>
-            <p className="mt-5 text-lg text-brand-slate">
-              Two simple services, both delivered with the same care,
-              consistency, and attention to detail. Pick the one that fits
-              today — and you can always switch later.
-            </p>
-          </motion.div>
+    <div className="no-scroll-page flex h-full flex-col gap-3 p-3 md:gap-4 md:p-4">
+      {/* Compact inline header strip */}
+      <motion.header
+        initial="hidden"
+        animate="show"
+        variants={fadeUp}
+        className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-brand-sky-tint px-4 py-3 md:px-5 md:py-3.5"
+      >
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold tracking-widest text-brand-deep uppercase">
+            Services
+          </p>
+          <h1 className="mt-0.5 text-xl font-bold text-brand-ink sm:text-2xl">
+            Cleaning built around you,{" "}
+            <span className="text-brand-deep">not a checklist.</span>
+          </h1>
+          <p className="mt-1 hidden text-xs text-brand-slate sm:block md:text-sm">
+            Two simple services, both delivered with the same care and
+            consistency. Pick the one that fits today — switch anytime.
+          </p>
         </div>
-      </section>
+        <Button
+          asChild
+          size="sm"
+          className="h-9 shrink-0 bg-brand-deep px-4 text-xs font-semibold text-white shadow-brand hover:bg-brand-deep-hover sm:text-sm"
+        >
+          <Link to="/contact">
+            Get a Free Quote
+            <ArrowRight className="ml-1.5 size-4" aria-hidden />
+          </Link>
+        </Button>
+      </motion.header>
 
-      {/* ─────────── Service blocks ─────────── */}
-      {SERVICES.map((service, idx) => {
-        const isDeep = service.id === "deep";
-        const reverse = idx % 2 === 1;
-        return (
-          <section
-            key={service.id}
-            id={service.id}
-            className={
-              idx % 2 === 0
-                ? "bg-white"
-                : "bg-brand-sky-tint"
-            }
-          >
-            <div className="mx-auto max-w-7xl px-4 pt-10 pb-20 sm:px-6 sm:pt-12 lg:px-8 lg:pt-14 lg:pb-24">
-              <div
-                className={`grid items-center gap-12 lg:grid-cols-2 ${
-                  reverse ? "lg:[&>div:first-child]:order-2" : ""
-                }`}
-              >
-                <div className="relative">
-                  <div className="absolute -inset-6 -z-10 rounded-3xl bg-brand-sky-tint" />
-                  <img
-                    src={isDeep ? IMAGES.deepKitchen : IMAGES.standardSupplies}
-                    alt={
-                      isDeep
-                        ? "Clean, minimalist kitchen interior"
-                        : "Cleaning supplies arranged on a surface"
-                    }
-                    className="relative h-[640px] w-full rounded-2xl bg-brand-sky-tint object-cover shadow-lg"
-                  />
+      {/* Two-pane: Standard | Deep — fills viewport */}
+      <div className="grid flex-1 grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+        {SERVICES.map((service, idx) => {
+          const isDeep = service.id === "deep";
+          const Icon = isDeep ? Sparkles : HomeIcon;
+          return (
+            <motion.article
+              key={service.id}
+              id={service.id}
+              initial="hidden"
+              animate="show"
+              variants={fadeUp}
+              custom={idx}
+              className="flex h-full overflow-hidden rounded-2xl border border-slate-200 bg-white"
+            >
+              <div className="flex h-full w-full flex-col p-4 md:p-5">
+                <div className="flex items-start gap-2">
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-brand-sky-soft text-brand-deep">
+                    <Icon className="size-4" aria-hidden />
+                  </span>
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold tracking-widest text-brand-deep uppercase">
+                      {service.name}
+                    </span>
+                    <h2 className="mt-0.5 text-base font-bold leading-tight text-brand-ink sm:text-lg">
+                      {service.tagline}
+                    </h2>
+                  </div>
                 </div>
 
-                <motion.div
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, amount: 0.3 }}
-                  variants={fadeUp}
-                  custom={1}
-                >
-                  <div className="inline-flex items-center gap-2 rounded-full bg-brand-sky-soft px-3 py-1 text-xs font-semibold tracking-wide text-brand-deep uppercase">
-                    {isDeep ? (
-                      <Sparkles className="size-3.5" aria-hidden />
-                    ) : (
-                      <HomeIcon className="size-3.5" aria-hidden />
-                    )}
-                    {service.name}
+                <p className="mt-2 text-xs leading-snug text-brand-slate sm:text-sm">
+                  {service.description}
+                </p>
+
+                {/* Two columns: benefits + includes */}
+                <div className="mt-2 grid flex-1 grid-cols-1 gap-3 overflow-hidden md:grid-cols-2">
+                  <div className="min-h-0">
+                    <p className="text-[10px] font-semibold tracking-widest text-brand-ink uppercase">
+                      What you get
+                    </p>
+                    <ul className="mt-1.5 space-y-1">
+                      {service.benefits.slice(0, 3).map((b) => (
+                        <li key={b} className="flex gap-1.5 text-[11px] text-brand-slate sm:text-xs">
+                          <CheckCircle2
+                            className="mt-0.5 size-3.5 shrink-0 text-brand-deep"
+                            aria-hidden
+                          />
+                          <span className="leading-snug">{b}</span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
-                  <h2 className="mt-4 text-3xl font-bold text-brand-ink sm:text-4xl">
-                    {service.tagline}
-                  </h2>
-                  <p className="mt-4 text-lg text-brand-slate">
-                    {service.description}
+
+                  <div className="min-h-0">
+                    <p className="text-[10px] font-semibold tracking-widest text-brand-ink uppercase">
+                      What's included
+                    </p>
+                    <ul className="mt-1.5 space-y-1">
+                      {service.includes.slice(0, 5).map((line) => (
+                        <li key={line} className="flex gap-1.5 text-[11px] text-brand-slate sm:text-xs">
+                          <span className="mt-1.5 size-1 shrink-0 rounded-full bg-brand-deep" />
+                          <span className="leading-snug">{line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                </div>
+
+                {/* Ideal-for strip */}
+                <div className="mt-2 rounded-lg border border-slate-200 bg-brand-sky-tint px-2.5 py-1.5">
+                  <p className="text-[9px] font-semibold tracking-widest text-brand-deep uppercase">
+                    Ideal for
                   </p>
+                  <p className="mt-0.5 text-[11px] leading-snug text-brand-slate sm:text-xs">
+                    {service.idealFor}
+                  </p>
+                </div>
 
-                  <h3 className="mt-8 text-sm font-semibold tracking-wide text-brand-ink uppercase">
-                    What you get
-                  </h3>
-                  <ul className="mt-4 space-y-3">
-                    {service.benefits.map((b) => (
-                      <li key={b} className="flex gap-3">
-                        <CheckCircle2
-                          className="mt-0.5 size-5 shrink-0 text-brand-deep"
-                          aria-hidden
-                        />
-                        <span className="text-brand-slate">{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <h3 className="mt-8 text-sm font-semibold tracking-wide text-brand-ink uppercase">
-                    What's included
-                  </h3>
-                  <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-                    {service.includes.map((line) => (
-                      <li
-                        key={line}
-                        className="flex gap-2 text-sm text-brand-slate"
-                      >
-                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand-deep" />
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
-                    <p className="text-sm font-semibold text-brand-ink">
-                      Ideal for
-                    </p>
-                    <p className="mt-1 text-sm text-brand-slate">
-                      {service.idealFor}
-                    </p>
-                  </div>
-                </motion.div>
+                {/* Inline CTA */}
+                <div className="mt-2.5 flex items-center justify-between gap-2">
+                  <Button
+                    asChild
+                    size="sm"
+                    className="h-8 bg-brand-deep px-3 text-[11px] font-semibold text-white shadow-brand hover:bg-brand-deep-hover"
+                  >
+                    <Link to="/contact">
+                      Request this service
+                      <ArrowRight className="ml-1.5 size-3.5" aria-hidden />
+                    </Link>
+                  </Button>
+                  <span className="text-[10px] text-brand-slate">
+                    Free, no-obligation quote
+                  </span>
+                </div>
               </div>
-            </div>
-          </section>
-        );
-      })}
+            </motion.article>
+          );
+        })}
+      </div>
 
-      {/* ─────────── CTA strip ─────────── */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
-          <div className="rounded-3xl border border-slate-200 bg-brand-sky-tint p-10 text-center sm:p-14">
-            <h2 className="text-3xl font-bold text-brand-ink sm:text-4xl">
-              Not sure which one is right?
-            </h2>
-            <p className="mx-auto mt-4 max-w-2xl text-lg text-brand-slate">
-              Tell us a little about your home and we'll recommend the service
-              that fits — no pressure, no obligation.
-            </p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Button
-                asChild
-                size="lg"
-                className="h-14 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover"
-              >
-                <Link to="/contact">
-                  Get a Free Quote
-                  <ArrowRight className="ml-2 size-5" aria-hidden />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="h-14 border-brand-deep px-8 text-base text-brand-deep hover:bg-white"
-              >
-                <Link to="/contact">Ask a question</Link>
-              </Button>
-            </div>
-          </div>
+      {/* Slim bottom CTA strip */}
+      <motion.div
+        initial="hidden"
+        animate="show"
+        variants={fadeUp}
+        custom={2}
+        className="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-brand-sky/40 bg-brand-sky-tint px-4 py-2.5"
+      >
+        <p className="text-xs text-brand-ink sm:text-sm">
+          <span className="font-semibold">Not sure which one?</span> Tell us
+          about your home and we'll recommend the right fit.
+        </p>
+        <div className="flex items-center gap-2">
+          <Button
+            asChild
+            size="sm"
+            className="h-8 bg-brand-deep px-3 text-[11px] font-semibold text-white shadow-brand hover:bg-brand-deep-hover"
+          >
+            <Link to="/contact">Get a Free Quote</Link>
+          </Button>
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="h-8 border-brand-deep px-3 text-[11px] font-semibold text-brand-deep hover:bg-white"
+          >
+            <Link to="/contact">Ask a question</Link>
+          </Button>
         </div>
-      </section>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }
