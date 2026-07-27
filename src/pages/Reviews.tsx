@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { motion } from "framer-motion";
 import { useQuery } from "convex/react";
 import { ArrowRight, Star, Quote, Mail, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -32,20 +31,14 @@ export default function Reviews() {
   const hasReviews = real.length > 0;
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white"
+    <div
+           className="bg-white"
     >
       {/* ─────────── Page header ─────────── */}
       <section className="bg-brand-sky-tint">
         <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            className="mx-auto max-w-3xl text-center"
+          <div
+                 className="mx-auto max-w-3xl text-center"
           >
             <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
               Reviews
@@ -70,19 +63,15 @@ export default function Reviews() {
                 ? "Honest feedback from across Winnipeg — every review on this page was left by a real customer, after a real visit."
                 : "ScrubFair is brand new in Winnipeg. We're earning our wall of reviews the right way \u2014 one careful visit at a time."}
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* ─────────── Founder's note ─────────── */}
       <section className="bg-white">
         <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.3 }}
-            variants={fadeUp}
-            className="grid gap-10 lg:grid-cols-5 lg:items-center"
+          <div
+                       className="grid gap-10 lg:grid-cols-5 lg:items-center"
           >
             <div className="lg:col-span-3">
               <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
@@ -126,19 +115,15 @@ export default function Reviews() {
                 className="relative h-[460px] w-full rounded-2xl bg-brand-sky-tint object-cover shadow-lg"
               />
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* ─────────── Reviews grid (live data or empty placeholders) ─────────── */}
       <section className="bg-brand-sky-tint">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.4 }}
-            variants={fadeUp}
-            className="mx-auto max-w-2xl text-center"
+          <div
+                       className="mx-auto max-w-2xl text-center"
           >
             <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
               {hasReviews ? "What customers are saying" : "Be the first"}
@@ -153,7 +138,7 @@ export default function Reviews() {
                 ? "Every review below was left by a real customer, after a real cleaning. Newest first."
                 : "Three empty slots, ready for the first Winnipeg families who trust ScrubFair with a clean. After your visit, your story goes right here."}
             </p>
-          </motion.div>
+          </div>
 
           <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {hasReviews
@@ -198,7 +183,7 @@ export default function Reviews() {
           </div>
         </div>
       </section>
-    </motion.div>
+    </div>
   );
 }
 
@@ -217,14 +202,9 @@ function ReviewCard({
     .join("")
     .toUpperCase();
 
-  return (
-    <motion.article
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, amount: 0.4 }}
-      variants={fadeUp}
-      custom={index}
+  return (    <article
       className="flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-brand"
+
     >
       <div className="flex items-center justify-between gap-3">
         <div
@@ -261,19 +241,14 @@ function ReviewCard({
         <p className="text-sm font-semibold text-brand-ink">{review.name}</p>
         <p className="mt-0.5 text-xs text-brand-slate">{review.service} client</p>
       </div>
-    </motion.article>
+    </article>
   );
 }
 
 function ReviewPlaceholderCard({ index }: { index: number }) {
-  return (
-    <motion.article
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, amount: 0.4 }}
-      variants={fadeUp}
-      custom={index}
+  return (    <article
       className="flex h-full flex-col rounded-2xl border border-dashed border-slate-300 bg-white p-6"
+
     >
       <div className="flex items-center justify-between">
         <Quote className="size-7 text-brand-deep" aria-hidden />
@@ -301,6 +276,6 @@ function ReviewPlaceholderCard({ index }: { index: number }) {
           Standard or Deep Cleaning client
         </p>
       </div>
-    </motion.article>
+    </article>
   );
 }

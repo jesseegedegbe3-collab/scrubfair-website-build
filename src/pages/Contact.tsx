@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { motion } from "framer-motion";
 import { useAction } from "convex/react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -112,20 +111,14 @@ export default function Contact() {
   const busy = isSubmitting || state.kind === "submitting";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white"
+    <div
+           className="bg-white"
     >
       {/* ─────────── Page header ─────────── */}
       <section className="bg-brand-sky-tint">
         <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            className="mx-auto max-w-3xl text-center"
+          <div
+                 className="mx-auto max-w-3xl text-center"
           >
             <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
               Contact
@@ -138,7 +131,7 @@ export default function Contact() {
               We'll get back to you within one business day with a free,
               no-obligation quote.
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -147,12 +140,8 @@ export default function Contact() {
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-12 lg:grid-cols-5 lg:gap-16">
             {/* Form */}
-            <motion.div
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.2 }}
-              variants={fadeUp}
-              className="lg:col-span-3"
+            <div
+                         className="lg:col-span-3"
             >
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
                 {state.kind === "success" ? (
@@ -261,15 +250,9 @@ export default function Contact() {
                   </form>
                 )}
               </div>
-            </motion.div>
+            </div>
 
-            {/* Info */}
-            <motion.div
-              initial="hidden"
-              whileInView="show"
-              viewport={{ once: true, amount: 0.2 }}
-              variants={fadeUp}
-              custom={1}
+            {/* Info */}            <div
               className="lg:col-span-2"
             >
               <div className="relative h-full overflow-hidden rounded-3xl bg-brand-sky-soft p-8">
@@ -350,11 +333,11 @@ export default function Contact() {
                   </div>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
       </section>
-    </motion.div>
+    </div>
   );
 }
 
@@ -411,10 +394,7 @@ function SuccessPanel({
   const showWarnings = warnings.length > 0;
   const neitherSent = !emailSent && !telegramSent;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+    <div
       className="text-center"
       role="status"
       aria-live="polite"
@@ -494,7 +474,7 @@ function SuccessPanel({
           Send another message
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }
 

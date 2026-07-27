@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router";
-import { motion } from "framer-motion";
 import { useAction } from "convex/react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -139,20 +138,14 @@ export default function LeaveReview() {
   const busy = isSubmitting || state.kind === "submitting";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white"
+    <div
+           className="bg-white"
     >
       {/* Hero */}
       <section className="bg-brand-sky-tint">
         <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            className="mx-auto max-w-3xl text-center"
+          <div
+                 className="mx-auto max-w-3xl text-center"
           >
             <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
               Leave a review
@@ -165,19 +158,15 @@ export default function LeaveReview() {
               you submit it. Short and honest is perfect &mdash; a few
               sentences about the experience you had.
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
       {/* Form */}
       <section className="bg-white">
         <div className="mx-auto max-w-3xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
-          <motion.div
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true, amount: 0.2 }}
-            variants={fadeUp}
-          >
+          <div
+                     >
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
               {state.kind === "success" ? (
                 <SuccessPanel
@@ -376,10 +365,10 @@ export default function LeaveReview() {
                 </form>
               )}
             </div>
-          </motion.div>
+          </div>
         </div>
       </section>
-    </motion.div>
+    </div>
   );
 }
 
@@ -433,10 +422,7 @@ function SuccessPanel({
 }) {
   const showWarnings = warnings.length > 0;
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 8 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
+    <div
       className="text-center"
       role="status"
       aria-live="polite"
@@ -526,6 +512,6 @@ function SuccessPanel({
           Write another
         </Button>
       </div>
-    </motion.div>
+    </div>
   );
 }

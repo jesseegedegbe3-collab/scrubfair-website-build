@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 import { Link } from "react-router";
 import { Mail, Phone, FileText, Sparkles } from "lucide-react";
 import { BRAND } from "@/lib/brand";
@@ -197,11 +196,8 @@ export function Terms() {
       {/* Hero */}
       <section className="border-b border-slate-200 bg-brand-sky-tint">
         <div className="mx-auto max-w-3xl px-4 pt-16 pb-3 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-          >
+          <div
+                     >
             <p className="text-xs font-semibold tracking-wide text-brand-deep uppercase">
               Legal
             </p>
@@ -215,7 +211,7 @@ export function Terms() {
             <p className="mt-3 text-xs text-brand-slate">
               Last updated: <strong>{LAST_UPDATED}</strong>
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -243,17 +239,9 @@ export function Terms() {
       <section className="bg-white">
         <div className="mx-auto max-w-3xl space-y-8 px-4 py-16 sm:px-6 lg:px-8">
           {SECTIONS.map((section, idx) => (
-            <motion.article
+            <article
               key={section.id}
               id={section.id}
-              initial={{ opacity: 0, y: 16 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-80px" }}
-              transition={{
-                duration: 0.5,
-                ease: [0.16, 1, 0.3, 1],
-                delay: 0.05 * idx,
-              }}
               className="rounded-2xl border border-slate-200 bg-white p-7 shadow-sm sm:p-8"
             >
               <h2 className="text-2xl font-semibold tracking-tight text-brand-ink">
@@ -311,7 +299,7 @@ export function Terms() {
                   </div>
                 </div>
               )}
-            </motion.article>
+            </article>
           ))}
 
           {/* Footer-of-page CTA */}

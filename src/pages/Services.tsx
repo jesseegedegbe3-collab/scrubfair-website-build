@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { motion } from "framer-motion";
 import {
   ArrowRight,
   CheckCircle2,
@@ -21,20 +20,14 @@ const fadeUp = {
 
 export default function Services() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white"
+    <div
+           className="bg-white"
     >
       {/* ─────────── Page header ─────────── */}
       <section className="bg-brand-sky-tint">
         <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            className="mx-auto max-w-3xl text-center"
+          <div
+                 className="mx-auto max-w-3xl text-center"
           >
             <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
               Services
@@ -47,7 +40,7 @@ export default function Services() {
               consistency, and attention to detail. Pick the one that fits
               today — and you can always switch later.
             </p>
-          </motion.div>
+          </div>
         </div>
       </section>
 
@@ -84,13 +77,8 @@ export default function Services() {
                   />
                 </div>
 
-                <motion.div
-                  initial="hidden"
-                  whileInView="show"
-                  viewport={{ once: true, amount: 0.3 }}
-                  variants={fadeUp}
-                  custom={1}
-                >
+                <div
+                           >
                   <div className="inline-flex items-center gap-2 rounded-full bg-brand-sky-soft px-3 py-1 text-xs font-semibold tracking-wide text-brand-deep uppercase">
                     {isDeep ? (
                       <Sparkles className="size-3.5" aria-hidden />
@@ -144,7 +132,7 @@ export default function Services() {
                       {service.idealFor}
                     </p>
                   </div>
-                </motion.div>
+                </div>
               </div>
             </div>
           </section>
@@ -185,6 +173,6 @@ export default function Services() {
           </div>
         </div>
       </section>
-    </motion.div>
+    </div>
   );
 }

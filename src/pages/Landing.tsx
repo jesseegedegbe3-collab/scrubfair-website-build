@@ -1,5 +1,4 @@
 import { Link } from "react-router";
-import { motion } from "framer-motion";
 import {
   ShieldCheck,
   Sparkles,
@@ -31,11 +30,8 @@ const fadeUp = {
 
 export default function Home() {
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.4 }}
-      className="bg-white"
+    <div
+           className="bg-white"
     >
       {/* ─────────────────────────── HERO ─────────────────────────── */}
       <section className="relative isolate overflow-hidden">
@@ -49,38 +45,26 @@ export default function Home() {
         </div>
 
         <div className="mx-auto max-w-7xl px-4 pb-10 pt-10 sm:px-6 sm:pb-14 sm:pt-14 lg:px-8 lg:pt-20">
-          <motion.h1
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            custom={0}
-            className="max-w-3xl text-4xl font-extrabold leading-[1.05] text-brand-ink sm:text-5xl lg:text-6xl"
+          <h1
+                       className="max-w-3xl text-4xl font-extrabold leading-[1.05] text-brand-ink sm:text-5xl lg:text-6xl"
           >
             A spotless home,
             <br className="hidden sm:block" />{" "}
             <span className="text-brand-deep">
               without spending your weekend on it.
             </span>
-          </motion.h1>
+          </h1>
 
-          <motion.p
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            custom={1}
-            className="mt-5 max-w-2xl text-lg text-brand-slate sm:text-xl"
+          <p
+                       className="mt-5 max-w-2xl text-lg text-brand-slate sm:text-xl"
           >
             Winnipeg's careful, locally-owned cleaning service. Walk in to a
             home that already feels tidied, dusted, and ready to relax in — and
             get your weekends back.
-          </motion.p>
+          </p>
 
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            custom={2}
-            className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
+          <div
+                       className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center"
           >
             <Button
               asChild
@@ -100,14 +84,10 @@ export default function Home() {
             >
               <Link to="/services">See Our Services</Link>
             </Button>
-          </motion.div>
+          </div>
 
-          <motion.div
-            initial="hidden"
-            animate="show"
-            variants={fadeUp}
-            custom={3}
-            className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-brand-slate"
+          <div
+                       className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 text-sm text-brand-slate"
           >
             <span className="inline-flex items-center gap-2">
               <CheckCircle2 className="size-4 text-brand-deep" aria-hidden />
@@ -121,7 +101,7 @@ export default function Home() {
               <CheckCircle2 className="size-4 text-brand-deep" aria-hidden />
               Serving all of Winnipeg
             </span>
-          </motion.div>
+          </div>
 
         </div>
       </section>
@@ -132,14 +112,9 @@ export default function Home() {
           {TRUST_BADGES.map((badge, i) => {
             const Icon = trustIcon[badge.id as keyof typeof trustIcon];
             return (
-              <motion.div
+              <div
                 key={badge.id}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.4 }}
-                variants={fadeUp}
-                custom={i}
-                className="flex items-start gap-4"
+                               className="flex items-start gap-4"
               >
                 <div className="flex size-12 shrink-0 items-center justify-center rounded-xl bg-brand-sky-soft text-brand-deep">
                   <Icon className="size-6" aria-hidden />
@@ -152,7 +127,7 @@ export default function Home() {
                     {badge.description}
                   </p>
                 </div>
-              </motion.div>
+              </div>
             );
           })}
         </div>
@@ -176,14 +151,9 @@ export default function Home() {
 
           <div className="mt-14 grid gap-8 md:grid-cols-2">
             {SERVICES.map((service, i) => (
-              <motion.article
+              <article
                 key={service.id}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.3 }}
-                variants={fadeUp}
-                custom={i}
-                className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-brand"
+                               className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-brand"
               >
                 <div className="relative h-56 overflow-hidden">
                   <img
@@ -212,7 +182,7 @@ export default function Home() {
                     <ArrowRight className="size-4" aria-hidden />
                   </Link>
                 </div>
-              </motion.article>
+              </article>
             ))}
           </div>
 
@@ -314,14 +284,9 @@ export default function Home() {
 
           <div className="mt-12 grid gap-6 sm:grid-cols-3">
             {[1, 2, 3].map((i) => (
-              <motion.div
+              <div
                 key={i}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.4 }}
-                variants={fadeUp}
-                custom={i}
-                className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-6"
+                               className="flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-6"
               >
                 <div className="flex gap-1 text-brand-deep">
                   {[1, 2, 3, 4, 5].map((s) => (
@@ -334,7 +299,7 @@ export default function Home() {
                 <p className="mt-3 text-xs font-medium tracking-wide text-brand-deep uppercase">
                   First review &mdash; coming soon
                 </p>
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -393,6 +358,6 @@ export default function Home() {
           </div>
         </div>
       </section>
-    </motion.div>
+    </div>
   );
 }
