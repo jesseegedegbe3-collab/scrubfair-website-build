@@ -12,6 +12,8 @@ import {
   AlertCircle,
   Loader2,
   Sparkles,
+  Info,
+  Check,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -64,7 +66,12 @@ type FormValues = z.infer<typeof formSchema>;
 type SubmitState =
   | { kind: "idle" }
   | { kind: "submitting" }
-  | { kind: "success" }
+  | {
+      kind: "success";
+      warnings: string[];
+      emailSent: boolean;
+      emailFromUsed: string | null;
+    }
   | { kind: "error"; message: string };
 
 const fadeUp = {
@@ -105,7 +112,7 @@ export default function LeaveReview() {
   const onSubmit = async (values: FormValues) => {
     setState({ kind: "submitting" });
     try {
-      await submit({
+      const result = await submit({
         name: values.name.trim(),
         neighbourhood: values.neighbourhood,
         service: values.service,
@@ -113,7 +120,12 @@ export default function LeaveReview() {
         body: values.body.trim(),
         source: "leave-review-page",
       });
-      setState({ kind: "success" });
+      setState({
+        kind: "success",
+        warnings: result.warnings ?? [],
+        emailSent: !!result.emailSent,
+        emailFromUsed: result.emailFromUsed ?? null,
+      });
       reset();
     } catch (err) {
       const msg =
@@ -168,7 +180,12 @@ export default function LeaveReview() {
           >
             <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
               {state.kind === "success" ? (
-                <SuccessPanel onReset={() => setState({ kind: "idle" })} />
+                <SuccessPanel
+                  onReset={() => setState({ kind: "idle" })}
+                  warnings={state.warnings}
+                  emailSent={state.emailSent}
+                  emailFromUsed={state.emailFromUsed}
+                />
               ) : (
                 <form
                   onSubmit={handleSubmit(onSubmit)}
@@ -403,7 +420,18 @@ function Field({
   );
 }
 
-function SuccessPanel({ onReset }: { onReset: () => void }) {
+function SuccessPanel({
+  onReset,
+  warnings,
+  emailSent,
+  emailFromUsed,
+}: {
+  onReset: () => void;
+  warnings: string[];
+  emailSent: boolean;
+  emailFromUsed: string | null;
+}) {
+  const showWarnings = warnings.length > 0;
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
@@ -426,6 +454,59 @@ function SuccessPanel({ onReset }: { onReset: () => void }) {
         </Link>
         . It means a lot to a brand-new Winnipeg business like ours.
       </p>
+
+      <div className="mx-auto mt-5 inline-flex flex-wrap items-center justify-center gap-2 text-xs">
+        <span
+          className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium ${
+            emailSent
+              ? "bg-brand-sky-soft text-brand-deep"
+              : "bg-slate-100 text-brand-slate"
+          }`}
+        >
+          {emailSent ? (
+            <Check className="size-3.5" aria-hidden />
+          ) : (
+            <Info className="size-3.5" aria-hidden />
+          )}
+          {emailSent ? "Business notified by email" : "Business email skipped"}
+          {emailFromUsed && (
+            <span className="text-brand-slate/70">
+              &mdash; {emailFromUsed}
+            </span>
+          )}
+        </span>
+      </div>
+
+      {showWarnings && (
+        <div
+          className={`mt-6 rounded-xl border p-4 text-left text-sm ${
+            !emailSent
+              ? "border-amber-300 bg-amber-50 text-amber-900"
+              : "border-slate-200 bg-slate-50 text-brand-slate"
+          }`}
+        >
+          <div className="flex items-start gap-2">
+            {!emailSent ? (
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
+            ) : (
+              <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+            )}
+            <div>
+              <p className="font-semibold">
+                {!emailSent
+                  ? "Your review is saved, but the team wasn\u2019t notified by email."
+                  : "Notification details"}
+              </p>
+              <ul className="mt-2 list-disc space-y-1 pl-5">
+                {warnings.map((w, i) => (
+                  <li key={i}>{w}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
         <Button
           asChild

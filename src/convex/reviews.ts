@@ -9,7 +9,11 @@ import { v } from "convex/values";
 // ============================================================================
 // On submit:
 //   1. Persist the review to the `reviews` table (immediately public).
-//   2. Send an email to the business via Resend (if RESEND_API_KEY is set).
+//   2. Send an email to the business via Resend, with the same
+//      verified-domain auto-fallback used by the contact form: if the
+//      `from` is on an unverified custom domain, retry with the verified
+//      onboarding@resend.dev envelope so the business still gets the
+//      notification.
 //   3. Send a Telegram message to the business (if TELEGRAM_BOT_TOKEN and
 //      TELEGRAM_CHAT_ID are set).
 //
@@ -20,6 +24,7 @@ import { v } from "convex/values";
 // ============================================================================
 
 const NOTIFY_EMAIL = "contact@scrubfair.ca";
+const RESEND_FALLBACK_FROM = "ScrubFair <onboarding@resend.dev>";
 
 export const submitReview = action({
   args: {
@@ -54,37 +59,93 @@ export const submitReview = action({
     });
 
     const warnings: string[] = [];
+    let emailSent = false;
+    let emailFromUsed: string | null = null;
 
-    // 2. Email notification (Resend)
+    // 2. Email notification (Resend, with custom-domain auto-fallback)
     if (process.env.RESEND_API_KEY) {
+      const configuredFrom =
+        process.env.RESEND_FROM_EMAIL ?? RESEND_FALLBACK_FROM;
+      const stars = "⭐".repeat(args.rating);
+      const subject = `${stars} New ${args.rating}-star review from ${args.name} (${args.neighbourhood})`;
+      const html = buildReviewEmailHtml(args);
+      const text = buildReviewEmailText(args);
+
       try {
         const { Resend } = await import("resend");
         const resend = new Resend(process.env.RESEND_API_KEY);
-        const stars = "⭐".repeat(args.rating);
-        const subject = `${stars} New ${args.rating}-star review from ${args.name} (${args.neighbourhood})`;
-        const html = buildReviewEmailHtml(args);
-        const text = buildReviewEmailText(args);
-        const from =
-          process.env.RESEND_FROM_EMAIL ??
-          "ScrubFair <onboarding@resend.dev>";
-
-        await resend.emails.send({
-          from,
+        const result = await resend.emails.send({
+          from: configuredFrom,
           to: NOTIFY_EMAIL,
           subject,
           html,
           text,
         });
-      } catch (err) {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.warn("[reviews] Resend send failed:", msg);
-        warnings.push(`email: ${msg}`);
+        if ((result as { error?: { message?: string } }).error) {
+          const e = (result as {
+            error?: { message?: string; statusCode?: number };
+          }).error!;
+          throw new Error(
+            `[${e.statusCode ?? "ERR"}] ${e.message ?? "unknown error"}`,
+          );
+        }
+        emailSent = true;
+        emailFromUsed = configuredFrom;
+        if (configuredFrom === RESEND_FALLBACK_FROM) {
+          warnings.push(
+            "email: sent from default Resend domain (onboarding@resend.dev) — verify scrubfair.ca in your Resend dashboard to send as contact@scrubfair.ca",
+          );
+        }
+      } catch (rawErr) {
+        const msg = errText(rawErr);
+        if (
+          configuredFrom !== RESEND_FALLBACK_FROM &&
+          isDomainNotVerified(msg)
+        ) {
+          console.warn(
+            "[reviews] Resend rejected configured from (domain not verified) — retrying with onboarding@resend.dev:",
+            msg,
+          );
+          try {
+            const { Resend } = await import("resend");
+            const resend = new Resend(process.env.RESEND_API_KEY!);
+            const fb = await resend.emails.send({
+              from: RESEND_FALLBACK_FROM,
+              to: NOTIFY_EMAIL,
+              subject,
+              html,
+              text,
+            });
+            if ((fb as { error?: { message?: string } }).error) {
+              const e = (fb as {
+                error?: { message?: string; statusCode?: number };
+              }).error!;
+              throw new Error(
+                `[fallback ${e.statusCode ?? "ERR"}] ${e.message ?? "unknown error"}`,
+              );
+            }
+            emailSent = true;
+            emailFromUsed = RESEND_FALLBACK_FROM;
+            warnings.push(
+              `email: configured from address "${configuredFrom}" failed (domain not verified) — sent via onboarding@resend.dev fallback. Verify scrubfair.ca in your Resend dashboard.`,
+            );
+          } catch (fbErr) {
+            const fbMsg = errText(fbErr);
+            console.warn("[reviews] Resend fallback also failed:", fbMsg);
+            warnings.push(
+              `email: primary "${configuredFrom}" rejected (domain not verified), and fallback onboarding@resend.dev also failed: ${fbMsg}`,
+            );
+          }
+        } else {
+          console.warn("[reviews] Resend send failed:", msg);
+          warnings.push(`email: ${msg}`);
+        }
       }
     } else {
       console.warn(
-        "[reviews] RESEND_API_KEY not set \u2014 email notification skipped.",
+        "[reviews] RESEND_API_KEY not set — email notification skipped.",
       );
-      warnings.push("email: credentials not configured");
+      warnings.push("email: RESEND_API_KEY not configured in Convex env");
     }
 
     // 3. Telegram notification
@@ -119,14 +180,40 @@ export const submitReview = action({
       }
     } else {
       console.warn(
-        "[reviews] TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set \u2014 Telegram notification skipped.",
+        "[reviews] TELEGRAM_BOT_TOKEN / TELEGRAM_CHAT_ID not set — Telegram notification skipped.",
       );
-      warnings.push("telegram: credentials not configured");
+      warnings.push(
+        "telegram: TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured",
+      );
     }
 
-    return { success: true, warnings };
+    return { success: true, emailSent, emailFromUsed, warnings };
   },
 });
+
+// ----------------------------------------------------------------------------
+// Error helpers (kept in sync with contact.ts)
+// ----------------------------------------------------------------------------
+
+function errText(err: unknown): string {
+  if (err instanceof Error) return err.message;
+  if (typeof err === "string") return err;
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return String(err);
+  }
+}
+
+function isDomainNotVerified(message: string): boolean {
+  const m = message.toLowerCase();
+  return (
+    (m.includes("domain") && m.includes("verif")) ||
+    m.includes("domain_not_verified") ||
+    m.includes("not verified") ||
+    m.includes("unverified domain")
+  );
+}
 
 // ----------------------------------------------------------------------------
 // Helpers
