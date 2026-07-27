@@ -4,9 +4,9 @@ import { SiteFooter } from "@/components/SiteFooter";
 
 export function SiteLayout() {
   return (
-    <div className="flex h-dvh w-full flex-col overflow-hidden bg-white">
+    <div className="flex min-h-screen flex-col bg-white">
       <SiteHeader />
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1">
         <Outlet />
       </main>
       <SiteFooter />

@@ -191,37 +191,6 @@
   .shadow-brand-lg {
     box-shadow: 0 18px 40px -18px rgba(92, 192, 232, 0.55);
   }
-
-  /* Bento fill helpers — for grid backgrounds where the image was huge */
-  .bg-bento-clean {
-    background-color: #eaf8fd;
-    background-image:
-      radial-gradient(circle at 18% 22%, rgba(127, 216, 245, 0.55), transparent 55%),
-      radial-gradient(circle at 82% 78%, rgba(92, 192, 232, 0.45), transparent 60%);
-  }
-  .bg-bento-sky {
-    background-color: #eaf8fd;
-    background-image:
-      linear-gradient(180deg, rgba(127, 216, 245, 0.20) 0%, rgba(245, 251, 254, 0) 60%);
-  }
-}
-
-/* "No-scroll page" layout helper — every route now opts in.
-   On tall enough viewports the page is fully visible. On small
-   viewports we gracefully fall back to internal scroll so nothing
-   is ever hidden behind unreadable microscopic text. */
-@layer utilities {
-  .no-scroll-page {
-    height: calc(100dvh - 3rem); /* subtract header (h-12) + footer (h-12) */
-    overflow: hidden;
-  }
-  @media (max-height: 760px), (max-width: 767px) {
-    .no-scroll-page {
-      height: auto;
-      min-height: 100dvh;
-      overflow-y: auto;
-    }
-  }
 }
 
 /* Selection color matches brand */
