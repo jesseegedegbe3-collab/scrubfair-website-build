@@ -90,6 +90,16 @@ class RootErrorBoundary extends React.Component<
 }
 
 const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
+// GitHub Pages has no server-side routing: a direct load or refresh on a
+// client-side route (e.g. /services) gets served public/404.html, which
+// redirects here with the original path preserved in ?redirect=. Restore it
+// before React Router mounts so the correct page renders instead of Home.
+{
+  const redirect = new URLSearchParams(window.location.search).get("redirect");
+  if (redirect) {
+    window.history.replaceState(null, "", redirect);
+  }
+}
 
 
 
