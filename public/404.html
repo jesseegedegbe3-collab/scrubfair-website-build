@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>ScrubFair</title>
+  <script>
+    // GitHub Pages has no server-side routing, so any direct load or refresh
+    // on a client-side route (e.g. /services, /contact) hits this 404 page.
+    // Redirect back to the app root, preserving the intended path in the
+    // query string so React Router can restore it on load.
+    var path = location.pathname + location.search + location.hash;
+    location.replace('/?redirect=' + encodeURIComponent(path));
+  </script>
+</head>
+<body>
+  Redirecting…
+</body>
+</html>
