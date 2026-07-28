@@ -30,7 +30,7 @@ jobs:
           cache: npm
 
       - name: Install dependencies
-        run: run: npm install
+        run: npm install
 
       - name: Deploy Convex backend
         run: npx convex deploy
