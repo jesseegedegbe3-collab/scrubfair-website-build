@@ -100,6 +100,19 @@ export default function Contact() {
         emailFromUsed: result.emailFromUsed ?? null,
         telegramSent: !!result.telegramSent,
       });
+
+      // Google Ads conversion tracking — fires once per successful submission.
+      // transaction_id dedupes so a re-render/retry can't double-count.
+      if (typeof window !== "undefined" && typeof window.gtag === "function") {
+        window.gtag("event", "conversion", {
+          send_to: "AW-11192599006/oflPCL-ChKIcEN6Dhtkp",
+          transaction_id:
+            (typeof crypto !== "undefined" && crypto.randomUUID
+              ? crypto.randomUUID()
+              : `${Date.now()}-${Math.random().toString(36).slice(2)}`),
+        });
+      }
+
       reset();
     } catch (err) {
       const msg =
