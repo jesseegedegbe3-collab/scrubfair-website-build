@@ -214,8 +214,8 @@ export default function Home() {
               size="lg"
               className="h-14 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover"
             >
-              <Link to="/contact">
-                Get a Free Quote
+              <Link to="/services">
+                See Our Services
                 <ArrowRight className="ml-2 size-5" aria-hidden />
               </Link>
             </Button>
