@@ -37,6 +37,7 @@ const schema = defineSchema(
       name: v.string(),
       email: v.string(),
       phone: v.optional(v.string()),
+      service: v.string(),
       message: v.string(),
       source: v.optional(v.string()),
       status: v.union(

@@ -45,6 +45,7 @@ export const submitContactForm = action({
     name: v.string(),
     email: v.string(),
     phone: v.optional(v.string()),
+    service: v.string(),
     message: v.string(),
     source: v.optional(v.string()),
   },
@@ -57,6 +58,7 @@ export const submitContactForm = action({
       name: args.name,
       email: args.email,
       phone: args.phone,
+      service: args.service,
       message: args.message,
       source: args.source,
       now,
@@ -264,6 +266,7 @@ function buildEmailText(args: {
   name: string;
   email: string;
   phone?: string;
+  service: string;
   message: string;
   source?: string;
 }): string {
@@ -273,6 +276,7 @@ function buildEmailText(args: {
     `Name: ${args.name}`,
     `Email: ${args.email}`,
     `Phone: ${args.phone ?? "(not provided)"}`,
+    `Service: ${args.service}`,
     args.source ? `Source: ${args.source}` : null,
     ``,
     `Message:`,
@@ -286,6 +290,7 @@ function buildEmailHtml(args: {
   name: string;
   email: string;
   phone?: string;
+  service: string;
   message: string;
   source?: string;
 }): string {
@@ -308,7 +313,7 @@ function buildEmailHtml(args: {
       )}${row("Email", args.email)}${row(
         "Phone",
         args.phone ?? "—",
-      )}${args.source ? row("Source", args.source) : ""}</table>
+      )}${row("Service", args.service)}${args.source ? row("Source", args.source) : ""}</table>
       <div style="background:#f5fbfe;border:1px solid #e2e8f0;border-radius:8px;padding:14px;white-space:pre-wrap;color:#0f172a;font-size:14px;">${safe(
         args.message,
       )}</div>
@@ -320,6 +325,7 @@ function buildTelegramText(args: {
   name: string;
   email: string;
   phone?: string;
+  service: string;
   message: string;
   source?: string;
 }): string {
@@ -334,6 +340,7 @@ function buildTelegramText(args: {
     `<b>Name:</b> ${safe(args.name)}`,
     `<b>Email:</b> ${safe(args.email)}`,
     `<b>Phone:</b> ${args.phone ? safe(args.phone) : "—"}`,
+    `<b>Service:</b> ${safe(args.service)}`,
   ];
   if (args.source) parts.push(`<b>Source:</b> ${safe(args.source)}`);
   parts.push("", "<b>Message:</b>", safe(args.message));

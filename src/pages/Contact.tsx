@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { useAction } from "convex/react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -20,7 +20,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { IMAGES } from "@/lib/images";
-import { BRAND } from "@/lib/brand";
+import { BRAND, SERVICES } from "@/lib/brand";
 import { api } from "../convex/_generated/api";
 
 const formSchema = z.object({
@@ -39,6 +39,7 @@ const formSchema = z.object({
     .max(40, "Phone number is too long.")
     .optional()
     .or(z.literal("")),
+  service: z.string().min(1, "Please select a service."),
   message: z
     .string()
     .trim()
@@ -71,6 +72,10 @@ const fadeUp = {
 
 export default function Contact() {
   const submit = useAction(api.contact.submitContactForm);
+  const [searchParams] = useSearchParams();
+  const requestedService = searchParams.get("service");
+  const defaultService =
+    SERVICES.find((service) => service.id === requestedService)?.name ?? "";
   const [state, setState] = useState<SubmitState>({ kind: "idle" });
 
   const {
@@ -80,7 +85,13 @@ export default function Contact() {
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: "", email: "", phone: "", message: "" },
+    defaultValues: {
+      name: "",
+      email: "",
+      phone: "",
+      service: defaultService,
+      message: "",
+    },
   });
 
   const onSubmit = async (values: FormValues) => {
@@ -90,6 +101,7 @@ export default function Contact() {
         name: values.name.trim(),
         email: values.email.trim(),
         phone: values.phone?.trim() || undefined,
+        service: values.service,
         message: values.message.trim(),
         source: "contact-page",
       });
@@ -201,6 +213,32 @@ export default function Contact() {
                       registration={register("phone")}
                       autoComplete="tel"
                     />
+
+                    <div>
+                      <Label
+                        htmlFor="service"
+                        className="text-sm font-semibold text-brand-ink"
+                      >
+                        Service <span className="text-brand-deep">*</span>
+                      </Label>
+                      <select
+                        id="service"
+                        className="mt-2 flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-brand-ink outline-none focus-visible:border-brand-deep focus-visible:ring-2 focus-visible:ring-brand-deep/30"
+                        {...register("service")}
+                      >
+                        <option value="">Select a service</option>
+                        {SERVICES.map((service) => (
+                          <option key={service.id} value={service.name}>
+                            {service.name}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.service?.message && (
+                        <p className="mt-1 text-sm text-red-600">
+                          {errors.service.message}
+                        </p>
+                      )}
+                    </div>
 
                     <div>
                       <Label
