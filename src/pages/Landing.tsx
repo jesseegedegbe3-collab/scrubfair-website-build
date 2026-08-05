@@ -176,13 +176,6 @@ export default function Home() {
                     {service.tagline}
                   </p>
                   <p className="mt-3 text-brand-slate">{service.description}</p>
-                  <Link
-                    to={`/services#${service.id}`}
-                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-deep hover:text-brand-deep-hover"
-                  >
-                    Learn more
-                    <ArrowRight className="size-4" aria-hidden />
-                  </Link>
                 </div>
               </article>
             ))}
