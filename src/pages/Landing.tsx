@@ -188,24 +188,13 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-brand-ink">
-                  More ways we can help
-                </p>
-                <p className="mt-1 text-sm text-brand-slate">
-                  Commercial, move in/out, showhome, post-construction, and carpet cleaning.
-                </p>
-              </div>
-              <Link
-                to="/services"
-                className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-brand-deep hover:text-brand-deep-hover"
-              >
-                Explore all services
-                <ArrowRight className="size-4" aria-hidden />
-              </Link>
-            </div>
+          <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 text-center sm:p-6">
+            <p className="text-sm font-semibold text-brand-ink">
+              More ways we can help
+            </p>
+            <p className="mt-1 text-sm text-brand-slate">
+              Commercial, move in/out, showhome, post-construction, and carpet cleaning.
+            </p>
           </div>
 
           <div className="mt-10 text-center">
