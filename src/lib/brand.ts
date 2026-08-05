@@ -19,6 +19,7 @@ export const BRAND = {
 export const SERVICES = [
   {
     id: "standard",
+    image: "standardSupplies",
     name: "Standard Cleaning",
     tagline: "Your home, fresh and consistently cared for.",
     description:
@@ -40,6 +41,7 @@ export const SERVICES = [
   },
   {
     id: "deep",
+    image: "deepKitchen",
     name: "Deep Cleaning",
     tagline: "The reset your home has been waiting for.",
     description:
@@ -62,6 +64,7 @@ export const SERVICES = [
   },
   {
     id: "commercial",
+    image: "commercialOffice",
     name: "Commercial Cleaning",
     tagline: "A cleaner workplace, ready for business.",
     description:
@@ -81,6 +84,7 @@ export const SERVICES = [
   },
   {
     id: "move-in-out",
+    image: "moveInOut",
     name: "Move In / Move Out Cleaning",
     tagline: "A fresh start for the next chapter.",
     description:
@@ -100,6 +104,7 @@ export const SERVICES = [
   },
   {
     id: "showhomes",
+    image: "showhome",
     name: "Showhome Cleaning",
     tagline: "Make every viewing feel move-in ready.",
     description:
@@ -119,6 +124,7 @@ export const SERVICES = [
   },
   {
     id: "post-construction",
+    image: "postConstruction",
     name: "Post-Construction Cleaning",
     tagline: "Turn construction dust into a finished space.",
     description:
@@ -138,6 +144,7 @@ export const SERVICES = [
   },
   {
     id: "carpet",
+    image: "carpet",
     name: "Carpet Cleaning",
     tagline: "A fresher feel underfoot.",
     description:

@@ -58,9 +58,10 @@ export default function Home() {
           <p
                        className="mt-5 max-w-2xl text-lg text-brand-slate sm:text-xl"
           >
-            Winnipeg's careful, locally-owned cleaning service. Walk in to a
-            home that already feels tidied, dusted, and ready to relax in — and
-            get your weekends back.
+            Winnipeg's careful, locally-owned cleaning service for homes,
+            businesses, move days, showhomes, and more. Walk into a space that
+            feels finished, cared for, and ready to enjoy — without losing your
+            time to the cleaning.
           </p>
 
           <div
@@ -141,11 +142,12 @@ export default function Home() {
               What we clean
             </p>
             <h2 className="mt-3 text-3xl font-bold text-brand-ink sm:text-4xl">
-              Two simple services, done with care.
+              Cleaning that fits the way you live and work.
             </h2>
             <p className="mt-4 text-lg text-brand-slate">
-              Whether you want a recurring refresh or a one-time deep reset,
-              you'll get the same careful, consistent results every visit.
+              From recurring residential care and deep resets to commercial,
+              move-related, post-construction, showhome, and carpet cleaning,
+              you'll get the same careful, consistent ScrubFair standard.
             </p>
           </div>
 
@@ -186,7 +188,27 @@ export default function Home() {
             ))}
           </div>
 
-          <div className="mt-14 text-center">
+          <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 sm:p-6">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-brand-ink">
+                  More ways we can help
+                </p>
+                <p className="mt-1 text-sm text-brand-slate">
+                  Commercial, move in/out, showhome, post-construction, and carpet cleaning.
+                </p>
+              </div>
+              <Link
+                to="/services"
+                className="inline-flex shrink-0 items-center gap-2 text-sm font-semibold text-brand-deep hover:text-brand-deep-hover"
+              >
+                Explore all services
+                <ArrowRight className="size-4" aria-hidden />
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-10 text-center">
             <Button
               asChild
               size="lg"

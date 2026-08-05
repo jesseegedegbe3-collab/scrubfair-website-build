@@ -21,4 +21,14 @@ export const IMAGES = {
   contactInterior: U("1527515637462-cff94eecc1ac", 1400, 82),
   /** Footer texture — small sparkly supplies. */
   footerTexture: U("1583847268964-b28dc8f51f92", 1200, 80),
+  /** Commercial cleaning — bright, empty office interior. */
+  commercialOffice: U("1497366811353-6870744d04b2", 1400, 82),
+  /** Move in/out — clean, empty room ready for a new occupant. */
+  moveInOut: U("1505693416388-ac5ce068fe85", 1400, 82),
+  /** Showhome — polished, staged living room without people. */
+  showhome: U("1600566753190-17f0baa2a6c3", 1400, 82),
+  /** Post-construction — bright finished interior with clean surfaces. */
+  postConstruction: U("1600607687920-4e2a09cf159d", 1400, 82),
+  /** Carpet cleaning — clean carpeted interior. */
+  carpet: U("1586023492125-27b2c045efd7", 1400, 82),
 } as const;

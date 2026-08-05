@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SERVICES } from "@/lib/brand";
+import { IMAGES } from "@/lib/images";
 
 const serviceIcons = {
   standard: HomeIcon,
@@ -54,11 +55,17 @@ export default function Services() {
                   id={service.id}
                   className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-brand-lg sm:p-7"
                 >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-sky-soft text-brand-deep">
+                  <div className="relative -mx-6 -mt-6 mb-6 h-44 overflow-hidden sm:-mx-7 sm:-mt-7">
+                    <img
+                      src={IMAGES[service.image as keyof typeof IMAGES]}
+                      alt={`${service.name} service`}
+                      className="h-full w-full bg-brand-sky-tint object-cover transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-brand-ink/35 to-transparent" />
+                    <div className="absolute bottom-3 left-4 flex size-10 items-center justify-center rounded-xl bg-white/95 text-brand-deep shadow-sm sm:left-5">
                       <Icon className="size-5" aria-hidden />
                     </div>
-                    <span className="rounded-full bg-brand-sky-tint px-3 py-1 text-xs font-semibold tracking-wide text-brand-deep uppercase">
+                    <span className="absolute right-4 top-3 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold tracking-wide text-brand-deep uppercase shadow-sm sm:right-5">
                       Winnipeg
                     </span>
                   </div>

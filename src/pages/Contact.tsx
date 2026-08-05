@@ -152,8 +152,9 @@ export default function Contact() {
               Let's get your home on the calendar.
             </h1>
             <p className="mt-5 text-lg text-brand-slate">
-              Tell us a little about your home and what you're looking for.
-              We'll get back to you within one business day with a free,
+              Tell us what you need cleaned and what you're looking for.
+              Whether it’s a home, business, move, showhome, or renovation,
+              we’ll get back to you within one business day with a free,
               no-obligation quote.
             </p>
           </div>
@@ -227,11 +228,25 @@ export default function Contact() {
                         {...register("service")}
                       >
                         <option value="">Select a service</option>
-                        {SERVICES.map((service) => (
-                          <option key={service.id} value={service.name}>
-                            {service.name}
-                          </option>
-                        ))}
+                        <optgroup label="Residential">
+                          {SERVICES.filter((service) =>
+                            ["standard", "deep", "move-in-out", "carpet"].includes(service.id),
+                          ).map((service) => (
+                            <option key={service.id} value={service.name}>
+                              {service.name}
+                            </option>
+                          ))}
+                        </optgroup>
+                        <optgroup label="Business & property">
+                          {SERVICES.filter((service) =>
+                            ["commercial", "showhomes", "post-construction"].includes(service.id),
+                          ).map((service) => (
+                            <option key={service.id} value={service.name}>
+                              {service.name}
+                            </option>
+                          ))}
+                        </optgroup>
+
                       </select>
                       {errors.service?.message && (
                         <p className="mt-1 text-sm text-red-600">
@@ -250,7 +265,7 @@ export default function Contact() {
                       <Textarea
                         id="message"
                         rows={6}
-                        placeholder="Tell us about your home (size, number of bedrooms/bathrooms), what kind of clean you're looking for, and any specifics you'd like us to know."
+                        placeholder="Tell us about the space, what kind of clean you’re looking for, timing, and any details you’d like us to know."
                         className="mt-2 resize-y"
                         {...register("message")}
                       />
