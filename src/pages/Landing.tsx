@@ -150,7 +150,7 @@ export default function Home() {
           </div>
 
           <div className="mt-14 grid gap-8 md:grid-cols-2">
-            {SERVICES.map((service, i) => (
+            {SERVICES.slice(0, 2).map((service) => (
               <article
                 key={service.id}
                                className="group overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-brand"

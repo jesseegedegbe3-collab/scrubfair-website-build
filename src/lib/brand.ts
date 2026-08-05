@@ -60,6 +60,101 @@ export const SERVICES = [
     idealFor:
       "First-time customers, post-renovation or post-move cleans, spring refreshes, and homes that haven't had a detailed clean in a while.",
   },
+  {
+    id: "commercial",
+    name: "Commercial Cleaning",
+    tagline: "A cleaner workplace, ready for business.",
+    description:
+      "Dependable cleaning for offices, studios, retail spaces, and other commercial environments — so your team and customers walk into a space that feels cared for.",
+    benefits: [
+      "A professional first impression for customers and visitors",
+      "A cleaner, more comfortable environment for your team",
+      "A dependable cleaning rhythm that fits your operating hours",
+    ],
+    includes: [
+      "Workstations, common areas, and high-touch surfaces",
+      "Kitchen, lunchroom, and washroom cleaning",
+      "Vacuuming, mopping, dusting, and garbage removal",
+    ],
+    idealFor:
+      "Offices, retail spaces, studios, clinics, and small businesses in Winnipeg.",
+  },
+  {
+    id: "move-in-out",
+    name: "Move In / Move Out Cleaning",
+    tagline: "A fresh start for the next chapter.",
+    description:
+      "Take the cleaning off your moving checklist. We prepare an empty home for its next occupants or leave your old place feeling finished and ready to hand over.",
+    benefits: [
+      "Walk into your new space feeling settled from day one",
+      "A more polished handoff for landlords, buyers, or new tenants",
+      "One less time-consuming job during an already busy move",
+    ],
+    includes: [
+      "Cabinets, drawers, appliances, counters, and closets",
+      "Bathrooms, floors, baseboards, doors, and trim",
+      "Reachable windows, fixtures, and detail areas in empty rooms",
+    ],
+    idealFor:
+      "Tenants, homeowners, landlords, buyers, sellers, and property managers between occupants.",
+  },
+  {
+    id: "showhomes",
+    name: "Showhome Cleaning",
+    tagline: "Make every viewing feel move-in ready.",
+    description:
+      "Keep a showhome polished between viewings with careful attention to the details buyers notice — from spotless surfaces to presentation-ready floors and bathrooms.",
+    benefits: [
+      "A stronger first impression for every prospective buyer",
+      "A consistently polished presentation between showings",
+      "More time for your sales team to focus on the viewing experience",
+    ],
+    includes: [
+      "Dust-free surfaces, fixtures, trim, and display areas",
+      "Spotless kitchens, bathrooms, floors, and entryways",
+      "Touch-up cleaning after viewings or before open houses",
+    ],
+    idealFor:
+      "Builders, developers, real estate teams, and homeowners preparing a property for sale.",
+  },
+  {
+    id: "post-construction",
+    name: "Post-Construction Cleaning",
+    tagline: "Turn construction dust into a finished space.",
+    description:
+      "A detailed clean after renovation or construction that helps reveal the finished work and gets your space ready to use, photograph, or welcome people into.",
+    benefits: [
+      "Fine dust and residue cleared from the surfaces you can see and feel",
+      "A finished, comfortable space without the cleanup burden",
+      "A better final presentation for owners, tenants, or clients",
+    ],
+    includes: [
+      "Fine dust removal from surfaces, ledges, trim, and fixtures",
+      "Cabinet, countertop, appliance, bathroom, and floor cleaning",
+      "Final detail pass for accessible areas before occupancy or handoff",
+    ],
+    idealFor:
+      "Home renovations, remodels, new builds, contractors, and property owners preparing for occupancy.",
+  },
+  {
+    id: "carpet",
+    name: "Carpet Cleaning",
+    tagline: "A fresher feel underfoot.",
+    description:
+      "Refresh carpeted rooms by lifting everyday dirt and buildup, helping your floors look brighter and your home feel cleaner from the ground up.",
+    benefits: [
+      "A visibly fresher look in high-traffic rooms",
+      "Less tracked-in dirt and buildup around your home",
+      "A cleaner-feeling space for family, guests, tenants, or buyers",
+    ],
+    includes: [
+      "Pre-treatment of common traffic areas and visible spots",
+      "Thorough carpet cleaning across requested rooms",
+      "Careful attention to edges, entrances, and high-use areas",
+    ],
+    idealFor:
+      "Homes, rentals, offices, showhomes, and move-in or move-out refreshes.",
+  },
 ] as const;
 
 export const TRUST_BADGES = [

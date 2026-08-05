@@ -1,175 +1,138 @@
 import { Link } from "react-router";
 import {
   ArrowRight,
+  Building2,
   CheckCircle2,
-  Sparkles,
+  HardHat,
   Home as HomeIcon,
+  Layers,
+  Move,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { IMAGES } from "@/lib/images";
 import { SERVICES } from "@/lib/brand";
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: (i: number = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] as const },
-  }),
-};
+const serviceIcons = {
+  standard: HomeIcon,
+  deep: Sparkles,
+  commercial: Building2,
+  "move-in-out": Move,
+  showhomes: HomeIcon,
+  "post-construction": HardHat,
+  carpet: Layers,
+} as const;
 
 export default function Services() {
   return (
-    <div
-           className="bg-white"
-    >
-      {/* ─────────── Page header ─────────── */}
+    <div className="bg-white">
       <section className="bg-brand-sky-tint">
-        <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
-          <div
-                 className="mx-auto max-w-3xl text-center"
-          >
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+          <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
               Services
             </p>
             <h1 className="mt-3 text-4xl font-bold text-brand-ink sm:text-5xl">
-              Cleaning built around you, not a checklist.
+              A cleaner space, whatever your next chapter.
             </h1>
             <p className="mt-5 text-lg text-brand-slate">
-              Two simple services, both delivered with the same care,
-              consistency, and attention to detail. Pick the one that fits
-              today — and you can always switch later.
+              From recurring home care to move-day resets and commercial spaces,
+              ScrubFair brings careful, reliable cleaning to homes and businesses
+              across Winnipeg.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ─────────── Service blocks ─────────── */}
-      {SERVICES.map((service, idx) => {
-        const isDeep = service.id === "deep";
-        const reverse = idx % 2 === 1;
-        return (
-          <section
-            key={service.id}
-            id={service.id}
-            className={
-              idx % 2 === 0
-                ? "bg-white"
-                : "bg-brand-sky-tint"
-            }
-          >
-            <div className="mx-auto max-w-7xl px-4 pt-10 pb-20 sm:px-6 sm:pt-12 lg:px-8 lg:pt-14 lg:pb-24">
-              <div
-                className={`grid items-center gap-12 lg:grid-cols-2 ${
-                  reverse ? "lg:[&>div:first-child]:order-2" : ""
-                }`}
-              >
-                <div className="relative">
-                  <div className="absolute -inset-6 -z-10 rounded-3xl bg-brand-sky-tint" />
-                  <img
-                    src={isDeep ? IMAGES.deepKitchen : IMAGES.standardSupplies}
-                    alt={
-                      isDeep
-                        ? "Clean, minimalist kitchen interior"
-                        : "Cleaning supplies arranged on a surface"
-                    }
-                    className="relative h-[640px] w-full rounded-2xl bg-brand-sky-tint object-cover shadow-lg"
-                  />
-                </div>
-
-                <div
-                           >
-                  <div className="inline-flex items-center gap-2 rounded-full bg-brand-sky-soft px-3 py-1 text-xs font-semibold tracking-wide text-brand-deep uppercase">
-                    {isDeep ? (
-                      <Sparkles className="size-3.5" aria-hidden />
-                    ) : (
-                      <HomeIcon className="size-3.5" aria-hidden />
-                    )}
-                    {service.name}
+      <section className="bg-white">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8 lg:py-14">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {SERVICES.map((service) => {
+              const Icon = serviceIcons[service.id];
+              return (
+                <article
+                  key={service.id}
+                  id={service.id}
+                  className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition-shadow hover:shadow-brand-lg sm:p-7"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-sky-soft text-brand-deep">
+                      <Icon className="size-5" aria-hidden />
+                    </div>
+                    <span className="rounded-full bg-brand-sky-tint px-3 py-1 text-xs font-semibold tracking-wide text-brand-deep uppercase">
+                      Winnipeg
+                    </span>
                   </div>
-                  <h2 className="mt-4 text-3xl font-bold text-brand-ink sm:text-4xl">
-                    {service.tagline}
+
+                  <h2 className="mt-5 text-2xl font-bold text-brand-ink">
+                    {service.name}
                   </h2>
-                  <p className="mt-4 text-lg text-brand-slate">
+                  <p className="mt-2 font-medium text-brand-deep">
+                    {service.tagline}
+                  </p>
+                  <p className="mt-3 text-sm leading-6 text-brand-slate">
                     {service.description}
                   </p>
 
-                  <h3 className="mt-8 text-sm font-semibold tracking-wide text-brand-ink uppercase">
-                    What you get
-                  </h3>
-                  <ul className="mt-4 space-y-3">
-                    {service.benefits.map((b) => (
-                      <li key={b} className="flex gap-3">
-                        <CheckCircle2
-                          className="mt-0.5 size-5 shrink-0 text-brand-deep"
-                          aria-hidden
-                        />
-                        <span className="text-brand-slate">{b}</span>
-                      </li>
-                    ))}
-                  </ul>
+                  <div className="mt-5 flex-1">
+                    <h3 className="text-xs font-semibold tracking-wide text-brand-ink uppercase">
+                      Included highlights
+                    </h3>
+                    <ul className="mt-3 space-y-2">
+                      {service.includes.slice(0, 3).map((line) => (
+                        <li key={line} className="flex gap-2 text-sm text-brand-slate">
+                          <CheckCircle2
+                            className="mt-0.5 size-4 shrink-0 text-brand-deep"
+                            aria-hidden
+                          />
+                          <span>{line}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
 
-                  <h3 className="mt-8 text-sm font-semibold tracking-wide text-brand-ink uppercase">
-                    What's included
-                  </h3>
-                  <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-                    {service.includes.map((line) => (
-                      <li
-                        key={line}
-                        className="flex gap-2 text-sm text-brand-slate"
-                      >
-                        <span className="mt-2 size-1.5 shrink-0 rounded-full bg-brand-deep" />
-                        <span>{line}</span>
-                      </li>
-                    ))}
-                  </ul>
-
-                  <div className="mt-8 rounded-xl border border-slate-200 bg-white p-5">
-                    <p className="text-sm font-semibold text-brand-ink">
+                  <div className="mt-6 rounded-xl bg-brand-sky-tint p-4">
+                    <p className="text-xs font-semibold tracking-wide text-brand-ink uppercase">
                       Ideal for
                     </p>
-                    <p className="mt-1 text-sm text-brand-slate">
+                    <p className="mt-1 text-sm leading-5 text-brand-slate">
                       {service.idealFor}
                     </p>
                   </div>
-                </div>
-              </div>
-            </div>
-          </section>
-        );
-      })}
 
-      {/* ─────────── CTA strip ─────────── */}
-      <section className="bg-white">
-        <div className="mx-auto max-w-5xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
-          <div className="rounded-3xl border border-slate-200 bg-brand-sky-tint p-10 text-center sm:p-14">
+                  <Link
+                    to={`/contact?service=${service.id}`}
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-deep transition-colors hover:text-brand-deep-hover"
+                  >
+                    Request this service
+                    <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden />
+                  </Link>
+                </article>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      <section className="bg-brand-sky-tint">
+        <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
+          <div className="rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-sm sm:p-12">
             <h2 className="text-3xl font-bold text-brand-ink sm:text-4xl">
-              Not sure which one is right?
+              Not sure which service fits?
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-lg text-brand-slate">
-              Tell us a little about your home and we'll recommend the service
-              that fits — no pressure, no obligation.
+              Tell us what you need cleaned and we’ll recommend the right option
+              for your space — with a free, no-obligation quote.
             </p>
-            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-              <Button
-                asChild
-                size="lg"
-                className="h-14 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover"
-              >
-                <Link to="/contact">
-                  Get a Free Quote
-                  <ArrowRight className="ml-2 size-5" aria-hidden />
-                </Link>
-              </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="h-14 border-brand-deep px-8 text-base text-brand-deep hover:bg-white"
-              >
-                <Link to="/contact">Ask a question</Link>
-              </Button>
-            </div>
+            <Button
+              asChild
+              size="lg"
+              className="mt-7 h-14 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover"
+            >
+              <Link to="/contact">
+                Get a Free Quote
+                <ArrowRight className="ml-2 size-5" aria-hidden />
+              </Link>
+            </Button>
           </div>
         </div>
       </section>
