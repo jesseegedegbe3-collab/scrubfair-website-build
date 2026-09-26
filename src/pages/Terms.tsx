@@ -1,8 +1,8 @@
 import { Link } from "react-router";
-import { Mail, Phone, FileText, Sparkles } from "lucide-react";
+import { Mail, Phone, Sparkles } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 
-const LAST_UPDATED = "July 26, 2026";
+const LAST_UPDATED = "September 26, 2026";
 
 const SECTIONS = [
   {
@@ -22,13 +22,23 @@ const SECTIONS = [
     id: "service-area",
     title: "2. Service description & service area",
     body: (
-      <p>
-        ScrubFair provides <strong>residential cleaning services</strong>{" "}
-        — specifically our Standard Cleaning and Deep Cleaning packages —
-        exclusively within <strong>Winnipeg, Manitoba, Canada</strong>.
-        We do not currently service areas outside Winnipeg. Quotes for
-        homes outside the service area will not be issued.
-      </p>
+      <>
+        <p>
+          ScrubFair provides cleaning services — including Standard
+          Cleaning, Deep Cleaning, Commercial Cleaning, Move In / Move Out
+          Cleaning, Showhome Cleaning, Post-Construction Cleaning, and
+          Carpet Cleaning — exclusively within{" "}
+          <strong>Winnipeg, Manitoba, Canada</strong>. We do not currently
+          service areas outside Winnipeg. Quotes for locations outside the
+          service area will not be issued.
+        </p>
+        <p>
+          The exact scope of work for each visit is confirmed in your
+          written quote. Some specialized situations (heavy biohazard
+          remediation, hazardous-material removal, restoration after
+          fire or flood) are outside our scope and may be declined.
+        </p>
+      </>
     ),
   },
   {
@@ -90,37 +100,29 @@ const SECTIONS = [
   },
   {
     id: "payments-cancellations",
-    title: (
-      <>
-        6. Payments & cancellations{" "}
-        <span className="text-sm font-normal text-brand-slate">
-          (placeholder — final policy)
-        </span>
-      </>
-    ),
+    title: "6. Payments & cancellations",
     body: (
       <>
         <p>
-          Payment terms, accepted methods, and cancellation/rescheduling
-          rules are confirmed in the quote email before each booking.
-          Common expectations:
+          Payment is due on the day of service unless otherwise agreed in
+          writing in your quote. We accept e-transfer and cash; receipts
+          are provided for every payment.
         </p>
         <ul className="ml-5 list-disc space-y-1.5">
           <li>
-            Payment is due on the day of service unless otherwise
-            arranged in writing.
-          </li>
-          <li>
             Cancellations or reschedules made more than{" "}
-            <strong>24 hours</strong> before the appointment are free of
-            charge.
+            <strong>24 hours</strong> before the scheduled appointment are
+            free of charge.
           </li>
           <li>
-            Late cancellations (within 24 hours) may incur a trip fee.
+            Cancellations within <strong>24 hours</strong> of the
+            appointment, or lock-out/no-access situations where our team
+            arrives and cannot begin work, may incur a trip fee of{" "}
+            <strong>$50</strong>.
           </li>
           <li>
-            We will provide a final, written payment-and-cancellation
-            policy alongside your quote.
+            If we must reschedule for reasons within our control, we will
+            offer you the next available appointment at no penalty.
           </li>
         </ul>
       </>
@@ -210,26 +212,6 @@ export function Terms() {
             </p>
             <p className="mt-3 text-xs text-brand-slate">
               Last updated: <strong>{LAST_UPDATED}</strong>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Template banner */}
-      <section className="border-b border-amber-200 bg-amber-50">
-        <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
-          <div className="flex items-start gap-3">
-            <FileText
-              className="mt-0.5 size-5 shrink-0 text-amber-700"
-              aria-hidden
-            />
-            <p className="text-sm text-amber-900">
-              <strong>Template copy.</strong> These terms are provided as
-              starting language for our website and remain subject to
-              final review by a Canadian legal professional before being
-              relied upon. Sections marked "placeholder" (such as the
-              payment and cancellation policy) will be finalized in the
-              quote confirmation email.
             </p>
           </div>
         </div>

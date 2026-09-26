@@ -1,8 +1,8 @@
 import { Link } from "react-router";
-import { Mail, Phone, ShieldCheck, FileText } from "lucide-react";
+import { Mail, Phone, ShieldCheck } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 
-const LAST_UPDATED = "July 26, 2026";
+const LAST_UPDATED = "September 26, 2026";
 
 const SECTIONS = [
   {
@@ -49,13 +49,12 @@ const SECTIONS = [
             quickly by call or text if you prefer
           </li>
           <li>
-            <strong>Message</strong> — details about the home, preferred
-            service, square footage, pets, scheduling
+            <strong>Selected service</strong> — which of our services your
+            inquiry relates to, so we can prepare an accurate quote
           </li>
           <li>
-            <strong>Referrer / page source</strong> (technical, optional) —
-            the URL of the page you submitted the form from, used only to
-            understand which marketing channels are working
+            <strong>Message</strong> — details about the home, square
+            footage, pets, scheduling, or anything else you share
           </li>
         </ul>
         <p>
@@ -63,6 +62,12 @@ const SECTIONS = [
           numbers, or any government-issued identifiers through this
           website. Payment processing happens offline after a quote is
           accepted.
+        </p>
+        <p>
+          If you submit a review through our website, the review text,
+          rating, and the display name you provide are published on our
+          Reviews page. Please do not include personal details in a review
+          that you would not want visible to other visitors.
         </p>
       </>
     ),
@@ -139,17 +144,33 @@ const SECTIONS = [
   },
   {
     id: "cookies-and-tracking",
-    title: "6. Cookies and tracking",
+    title: "6. Cookies and analytics",
     body: (
-      <p>
-        <strong>scrubfair.ca currently uses no cookies, no tracking
-        pixels, and no third-party analytics.</strong> We only use
-        essential, first-party HTML and CSS — no Google Analytics, no
-        Facebook Pixel, no advertising cookies. If we ever add analytics
-        or cookies in the future, we will update this section and, where
-        required by Canadian privacy law, ask for your consent before
-        setting any non-essential cookies.
-      </p>
+      <>
+        <p>
+          This website uses <strong>Google Ads</strong> measurement tags to
+          understand how visitors find us and whether our advertising is
+          effective. When you visit scrubfair.ca, Google may set cookies on
+          your device and collect information such as pages visited and how
+          you arrived at the site. This data may be used by Google to
+          measure ad performance and, per Google's policies, may be shared
+          with other Google services.
+        </p>
+        <p>
+          You can opt out of Google Ads measurement at{" "}
+          <a
+            href="https://adssettings.google.com"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-brand-deep underline-offset-4 hover:underline"
+          >
+            adssettings.google.com
+          </a>{" "}
+          or by adjusting your browser's cookie settings. We do not run
+          remarketing or advertising campaigns that build individual
+          profiles of visitors.
+        </p>
+      </>
     ),
   },
   {
@@ -243,24 +264,6 @@ export function Privacy() {
             </p>
             <p className="mt-3 text-xs text-brand-slate">
               Last updated: <strong>{LAST_UPDATED}</strong>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Template banner */}
-      <section className="border-b border-amber-200 bg-amber-50">
-        <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
-          <div className="flex items-start gap-3">
-            <FileText
-              className="mt-0.5 size-5 shrink-0 text-amber-700"
-              aria-hidden
-            />
-            <p className="text-sm text-amber-900">
-              <strong>Template copy.</strong> This policy is provided as
-              starting language for our website and remains subject to
-              final review by a Canadian legal professional before being
-              relied upon. It does not constitute legal advice.
             </p>
           </div>
         </div>
