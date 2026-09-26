@@ -48,6 +48,7 @@ export const submitContactForm = action({
     service: v.string(),
     message: v.string(),
     source: v.optional(v.string()),
+    isPrivacyRequest: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -61,6 +62,7 @@ export const submitContactForm = action({
       service: args.service,
       message: args.message,
       source: args.source,
+      isPrivacyRequest: args.isPrivacyRequest === true,
       now,
     });
 
@@ -73,7 +75,10 @@ export const submitContactForm = action({
       const configuredFrom =
         process.env.RESEND_FROM_EMAIL ?? RESEND_FALLBACK_FROM;
 
-      const subject = `New quote request from ${args.name}`;
+      const isPrivacy = args.isPrivacyRequest === true;
+      const subject = isPrivacy
+        ? `[PRIVACY REQUEST] from ${args.name}`
+        : `New quote request from ${args.name}`;
       const html = buildEmailHtml(args);
       const text = buildEmailText(args);
 
@@ -269,9 +274,12 @@ function buildEmailText(args: {
   service: string;
   message: string;
   source?: string;
+  isPrivacyRequest?: boolean;
 }): string {
   return [
-    `New ScrubFair quote request`,
+    args.isPrivacyRequest
+      ? `New ScrubFair PRIVACY REQUEST (personal data)`
+      : `New ScrubFair quote request`,
     ``,
     `Name: ${args.name}`,
     `Email: ${args.email}`,
@@ -293,11 +301,16 @@ function buildEmailHtml(args: {
   service: string;
   message: string;
   source?: string;
+  isPrivacyRequest?: boolean;
 }): string {
   const safe = (s: string) =>
     s.replace(/[&<>"]/g, (c) =>
       c === "&" ? "&amp;" : c === "<" ? "&lt;" : c === ">" ? "&gt;" : "&quot;",
     );
+  const isPrivacy = args.isPrivacyRequest === true;
+  const heading = isPrivacy
+    ? "New privacy request (personal data)"
+    : "New quote request";
   const row = (label: string, value: string) => `
     <tr>
       <td style="padding:6px 12px 6px 0;color:#64748b;font-size:13px;white-space:nowrap;vertical-align:top;">${label}</td>
@@ -305,6 +318,8 @@ function buildEmailHtml(args: {
     </tr>`;
   return `
     <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
+      <h2 style="margin:0 0 4px;color:${isPrivacy ? "#b45309" : "#0f172a"};">${heading}</h2>
+      <p style="margin:0 0 16px;color:#64748b;font-size:14px;">Submitted via scrubfair.ca</p>tem-ui,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
       <h2 style="margin:0 0 4px;color:#0f172a;">New quote request</h2>
       <p style="margin:0 0 16px;color:#64748b;font-size:14px;">Submitted via scrubfair.ca</p>
       <table style="width:100%;border-collapse:collapse;margin-bottom:16px;">${row(
@@ -328,6 +343,7 @@ function buildTelegramText(args: {
   service: string;
   message: string;
   source?: string;
+  isPrivacyRequest?: boolean;
 }): string {
   // Telegram HTML mode only requires & < > to be escaped in user-provided text.
   const safe = (s: string) =>
@@ -335,7 +351,9 @@ function buildTelegramText(args: {
       c === "&" ? "&amp;" : c === "<" ? "&lt;" : "&gt;",
     );
   const parts = [
-    "<b>New ScrubFair quote request</b>",
+    args.isPrivacyRequest
+      ? "<b>🔔 ScrubFair PRIVACY REQUEST (personal data)</b>"
+      : "<b>New ScrubFair quote request</b>",
     "",
     `<b>Name:</b> ${safe(args.name)}`,
     `<b>Email:</b> ${safe(args.email)}`,

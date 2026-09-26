@@ -40,6 +40,7 @@ const schema = defineSchema(
       service: v.string(),
       message: v.string(),
       source: v.optional(v.string()),
+      isPrivacyRequest: v.boolean(),
       status: v.union(
         v.literal("new"),
         v.literal("contacted"),

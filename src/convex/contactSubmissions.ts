@@ -11,6 +11,7 @@ export const saveSubmission = internalMutation({
     service: v.string(),
     message: v.string(),
     source: v.optional(v.string()),
+    isPrivacyRequest: v.boolean(),
     now: v.number(),
   },
   handler: async (ctx, args) => {
@@ -21,6 +22,7 @@ export const saveSubmission = internalMutation({
       service: args.service,
       message: args.message,
       source: args.source,
+      isPrivacyRequest: args.isPrivacyRequest,
       status: "new",
       createdAt: args.now,
     });

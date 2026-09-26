@@ -14,11 +14,13 @@ import {
   Loader2,
   Check,
   Info,
+  ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { IMAGES } from "@/lib/images";
 import { BRAND, SERVICES } from "@/lib/brand";
 import { api } from "../convex/_generated/api";
@@ -39,12 +41,22 @@ const formSchema = z.object({
     .max(40, "Phone number is too long.")
     .optional()
     .or(z.literal("")),
-  service: z.string().min(1, "Please select a service."),
+  service: z.string(),
   message: z
     .string()
     .trim()
     .min(10, "Tell us a little more — at least 10 characters.")
     .max(2000, "Message is too long (max 2000 characters)."),
+  isPrivacyRequest: z.boolean(),
+}).superRefine((values, ctx) => {
+  // A service selection is only required for regular (non-privacy) requests.
+  if (!values.isPrivacyRequest && !values.service) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["service"],
+      message: "Please select a service.",
+    });
+  }
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -61,15 +73,6 @@ type SubmitState =
     }
   | { kind: "error"; message: string };
 
-const fadeUp = {
-  hidden: { opacity: 0, y: 16 },
-  show: (i: number = 0) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.5, delay: i * 0.06, ease: [0.22, 1, 0.36, 1] as const },
-  }),
-};
-
 export default function Contact() {
   const submit = useAction(api.contact.submitContactForm);
   const [searchParams] = useSearchParams();
@@ -82,6 +85,9 @@ export default function Contact() {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
+    trigger,
     formState: { errors, isSubmitting },
   } = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -91,8 +97,11 @@ export default function Contact() {
       phone: "",
       service: defaultService,
       message: "",
+      isPrivacyRequest: false,
     },
   });
+
+  const isPrivacyRequest = watch("isPrivacyRequest") ?? false;
 
   const onSubmit = async (values: FormValues) => {
     setState({ kind: "submitting" });
@@ -101,9 +110,10 @@ export default function Contact() {
         name: values.name.trim(),
         email: values.email.trim(),
         phone: values.phone?.trim() || undefined,
-        service: values.service,
+        service: values.isPrivacyRequest ? "Privacy request" : values.service,
         message: values.message.trim(),
         source: "contact-page",
+        isPrivacyRequest: values.isPrivacyRequest,
       });
       setState({
         kind: "success",
@@ -115,17 +125,23 @@ export default function Contact() {
 
       // Google Ads conversion tracking — fires once per successful submission.
       // transaction_id dedupes so a re-render/retry can't double-count.
-      if (typeof window !== "undefined" && typeof window.gtag === "function") {
+      // (Privacy requests are excluded on purpose — they are not sales leads.)
+      if (
+        !values.isPrivacyRequest &&
+        typeof window !== "undefined" &&
+        typeof window.gtag === "function"
+      ) {
         window.gtag("event", "conversion", {
           send_to: "AW-11192599006/oflPCL-ChKIcEN6Dhtkp",
           transaction_id:
-            (typeof crypto !== "undefined" && crypto.randomUUID
+            typeof crypto !== "undefined" && crypto.randomUUID
               ? crypto.randomUUID()
-              : `${Date.now()}-${Math.random().toString(36).slice(2)}`),
+              : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
         });
       }
 
       reset();
+      setValue("isPrivacyRequest", false);
     } catch (err) {
       const msg =
         err instanceof Error ? err.message : "Something went wrong. Please try again.";
@@ -153,8 +169,8 @@ export default function Contact() {
             </h1>
             <p className="mt-5 text-lg text-brand-slate">
               Tell us what you need cleaned and what you're looking for.
-              Whether it’s a home, business, move, showhome, or renovation,
-              we’ll get back to you within one business day with a free,
+              Whether it's a home, business, move, showhome, or renovation,
+              we'll get back to you within one business day with a free,
               no-obligation quote.
             </p>
           </div>
@@ -215,45 +231,90 @@ export default function Contact() {
                       autoComplete="tel"
                     />
 
-                    <div>
-                      <Label
-                        htmlFor="service"
-                        className="text-sm font-semibold text-brand-ink"
-                      >
-                        Service <span className="text-brand-deep">*</span>
-                      </Label>
-                      <select
-                        id="service"
-                        className="mt-2 flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-brand-ink outline-none focus-visible:border-brand-deep focus-visible:ring-2 focus-visible:ring-brand-deep/30"
-                        {...register("service")}
-                      >
-                        <option value="">Select a service</option>
-                        <optgroup label="Residential">
-                          {SERVICES.filter((service) =>
-                            ["standard", "deep", "move-in-out", "carpet"].includes(service.id),
-                          ).map((service) => (
-                            <option key={service.id} value={service.name}>
-                              {service.name}
-                            </option>
-                          ))}
-                        </optgroup>
-                        <optgroup label="Business & property">
-                          {SERVICES.filter((service) =>
-                            ["commercial", "showhomes", "post-construction"].includes(service.id),
-                          ).map((service) => (
-                            <option key={service.id} value={service.name}>
-                              {service.name}
-                            </option>
-                          ))}
-                        </optgroup>
-
-                      </select>
-                      {errors.service?.message && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.service.message}
-                        </p>
-                      )}
+                    {/* Personal-data (privacy) request toggle */}
+                    <div className="flex items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                      <div className="flex items-start gap-3">
+                        <ShieldCheck
+                          className="mt-0.5 size-5 shrink-0 text-brand-deep"
+                          aria-hidden
+                        />
+                        <div>
+                          <Label
+                            htmlFor="privacy-toggle"
+                            className="text-sm font-semibold text-brand-ink"
+                          >
+                            This is about my personal data
+                          </Label>
+                          <p className="mt-0.5 text-xs text-brand-slate">
+                            Turn this on to request access to, correction of, or
+                            deletion of your information (see our{" "}
+                            <Link
+                              to="/privacy"
+                              className="font-medium text-brand-deep underline-offset-2 hover:underline"
+                            >
+                              Privacy Policy
+                            </Link>
+                            ). No service selection needed.
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        id="privacy-toggle"
+                        checked={isPrivacyRequest}
+                        onCheckedChange={(checked) => {
+                          setValue("isPrivacyRequest", checked, {
+                            shouldValidate: false,
+                          });
+                          // If switching back to a service request, re-validate
+                          // so the service requirement error clears cleanly.
+                          if (!checked) {
+                            void trigger("service");
+                          }
+                        }}
+                        aria-label="This is about my personal data"
+                      />
                     </div>
+
+                    {!isPrivacyRequest && (
+                      <div>
+                        <Label
+                          htmlFor="service"
+                          className="text-sm font-semibold text-brand-ink"
+                        >
+                          Service <span className="text-brand-deep">*</span>
+                        </Label>
+                        <select
+                          id="service"
+                          className="mt-2 flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-brand-ink outline-none focus-visible:border-brand-deep focus-visible:ring-2 focus-visible:ring-brand-deep/30"
+                          {...register("service")}
+                        >
+                          <option value="">Select a service</option>
+                          <optgroup label="Residential">
+                            {SERVICES.filter((service) =>
+                              ["standard", "deep", "move-in-out", "carpet"].includes(service.id),
+                            ).map((service) => (
+                              <option key={service.id} value={service.name}>
+                                {service.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                          <optgroup label="Business & property">
+                            {SERVICES.filter((service) =>
+                              ["commercial", "showhomes", "post-construction"].includes(service.id),
+                            ).map((service) => (
+                              <option key={service.id} value={service.name}>
+                                {service.name}
+                              </option>
+                            ))}
+                          </optgroup>
+                        </select>
+                        {errors.service?.message && (
+                          <p className="mt-1 text-sm text-red-600">
+                            {errors.service.message}
+                          </p>
+                        )}
+                      </div>
+                    )}
 
                     <div>
                       <Label
@@ -264,8 +325,12 @@ export default function Contact() {
                       </Label>
                       <Textarea
                         id="message"
-                        rows={6}
-                        placeholder="Tell us about the space, what kind of clean you’re looking for, timing, and any details you’d like us to know."
+                        rows={isPrivacyRequest ? 5 : 6}
+                        placeholder={
+                          isPrivacyRequest
+                            ? "Tell us what you'd like us to do — for example, request a copy of your data, correct it, or delete it. Include the email or phone number you originally used."
+                            : "Tell us about the space, what kind of clean you're looking for, timing, and any details you'd like us to know."
+                        }
                         className="mt-2 resize-y"
                         {...register("message")}
                       />
@@ -318,12 +383,15 @@ export default function Contact() {
               </div>
             </div>
 
-            {/* Info */}            <div
+            {/* Info */}
+            <div
               className="lg:col-span-2"
             >
               <div className="relative h-full overflow-hidden rounded-3xl bg-brand-sky-soft p-8">
-                <div className="absolute -right-12 -top-12 size-48 rounded-full bg-brand-sky opacity-40 blur-3xl" />
-                <div className="absolute -bottom-16 -left-16 size-56 rounded-full bg-brand-deep opacity-30 blur-3xl" />
+                <div className="absolute -right-12 -top-12 size-48 rounded-full bg-brand-sky opacity-40 blur-3xl">
+                </div>
+                <div className="absolute -bottom-16 -left-16 size-56 rounded-full bg-brand-deep opacity-30 blur-3xl">
+                </div>
 
                 <div className="relative">
                   <h2 className="text-xl font-bold text-brand-ink">
