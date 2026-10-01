@@ -97,9 +97,7 @@ export const saveLead = mutation({
       .query("bookings")
       .withIndex("by_email", (q) => q.eq("email", args.email.toLowerCase()))
       .collect();
-    const active = existing.find(
-      (b) => b.status === "lead" || b.status === "requested" || b.status === "confirmed",
-    );
+    const active = existing.find((b) => b.status === "lead");
 
     if (active && args.source !== "phone" && args.source !== "admin") {
       // Same customer returning: update the lead instead of duplicating.
@@ -389,6 +387,18 @@ export const releaseHold = mutation({
 export const submitBooking = mutation({
   args: {
     bookingId: v.id("bookings"),
+    // Home + service details (saved here so the DB is always complete and
+    // pricing is computed on real data — fixes the quote_required-everything bug)
+    sqft: v.number(),
+    sqftSource: v.optional(v.string()),
+    bedrooms: v.number(),
+    fullBaths: v.number(),
+    halfBaths: v.number(),
+    homeType: v.string(),
+    serviceType: v.string(),
+    frequency: v.string(),
+    addons: v.array(v.string()),
+    condition: v.string(),
     pests: v.boolean(),
     pets: v.boolean(),
     petsNote: v.optional(v.string()),
@@ -444,22 +454,39 @@ export const submitBooking = mutation({
     )
       return { ok: false as const, reason: "duplicate_phone" };
 
-    // Pricing snapshot + flags (server-authoritative recompute).
-    const deep = b.serviceType === "deep" || b.serviceType === "move_in_out";
+    // Save home + service details and compute needsReview from condition.
+    const details = {
+      sqft: args.sqft,
+      sqftSource: args.sqftSource,
+      bedrooms: args.bedrooms,
+      fullBaths: args.fullBaths,
+      halfBaths: args.halfBaths,
+      homeType: args.homeType,
+      serviceType: args.serviceType,
+      frequency: args.frequency,
+      addons: args.addons,
+      condition: args.condition,
+      needsReview:
+        args.condition === "months" || args.condition === "year_plus",
+    };
+
+    // Pricing snapshot + flags (server-authoritative recompute on REAL data).
+    const deep = details.serviceType === "deep" || details.serviceType === "move_in_out";
     const est = estimate({
-      sqft: b.sqft,
-      bedrooms: b.bedrooms,
-      fullBaths: b.fullBaths,
-      halfBaths: b.halfBaths,
-      homeType: b.homeType,
-      frequency: b.frequency,
-      addons: b.addons,
+      sqft: details.sqft,
+      bedrooms: details.bedrooms,
+      fullBaths: details.fullBaths,
+      halfBaths: details.halfBaths,
+      homeType: details.homeType,
+      frequency: details.frequency,
+      addons: details.addons,
     });
     const firstVisit = est ? (deep ? Math.round(est.firstVisit * 1.35) : est.firstVisit) : null;
     const perVisit = est && !deep ? est.perVisit : null;
     const quoteRequired = firstVisit === null || b.outsideArea === true;
 
     const patch: Record<string, unknown> = {
+      ...details,
       status: "requested",
       pests: args.pests,
       pestReview: args.pests,
@@ -467,8 +494,6 @@ export const submitBooking = mutation({
       petsNote: args.petsNote?.slice(0, 500),
       entryMethod: args.entryMethod,
       confirmVia: args.confirmVia,
-      needsReview:
-        b.needsReview || b.condition === "months" || b.condition === "year_plus",
       quoteRequired,
       priceFirstVisit: firstVisit ?? undefined,
       pricePerVisit: perVisit ?? undefined,

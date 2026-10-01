@@ -329,13 +329,25 @@ export default function Book() {
     try {
       const res = await submitBooking({
         bookingId: leadId,
+        // Home + service details — saved with the booking so pricing and the
+        // owner's notifications use real data.
+        sqft: resolvedSqft,
+        sqftSource: w.sqft ? "exact" : "estimate",
+        bedrooms: parseInt(w.bedrooms, 10) || 0,
+        fullBaths: parseInt(w.fullBaths, 10) || 0,
+        halfBaths: parseInt(w.halfBaths, 10) || 0,
+        homeType: w.homeType,
+        serviceType: w.serviceType,
+        frequency: w.frequency,
+        addons: w.addons,
+        condition: w.condition,
         pests: w.pests === "yes",
         pets: w.pets === "yes",
         petsNote: w.pets === "yes" ? w.petsNote || undefined : undefined,
         entryMethod: w.entryMethod,
         specialRequests: w.specialRequests || undefined,
         honeypot: honeypot || undefined,
-        confirmVia: w.confirmVia,
+        confirmVia: "email",
       });
       if (!res.ok) {
         if (res.reason === "slot_taken") {
