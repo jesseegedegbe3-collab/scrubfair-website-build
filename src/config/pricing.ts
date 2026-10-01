@@ -28,6 +28,7 @@ export const PRICING = {
     story_1_5: 1.05,
     story_2: 1.1,
     story_2_5: 1.15,
+    other: 1.0, // owner-requested: "Other" prices like a bungalow
   },
   // Recurring per-visit discount, applied to the initial price.
   // weekly: -30%, biweekly: -33.1%, monthly: -42%.
@@ -143,6 +144,7 @@ export const HOME_TYPE_OPTIONS = [
   { value: "apartment", label: "Apartment / condo" },
   { value: "split_level", label: "Split level" },
   { value: "bi_level", label: "Bi-level" },
+  { value: "other", label: "Other" },
 ] as const;
 
 export const FREQUENCY_OPTIONS = [

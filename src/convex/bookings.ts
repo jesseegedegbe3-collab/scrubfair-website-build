@@ -506,14 +506,34 @@ export const submitBooking = mutation({
       await releaseHoldsForBooking(ctx.db, b._id);
     }
 
+    // ------------------------------------------------------------------
+    // INSTANT CONFIRMATION (owner directive: the customer's pick IS the
+    // booking — no owner approval step). Bookings WITH a slot are confirmed
+    // in this same transaction. Only quote-required requests (no slot)
+    // stay in "requested" for manual scheduling.
+    // ------------------------------------------------------------------
+    if (!quoteRequired) {
+      patch.status = "confirmed";
+      patch.confirmedAt = now;
+      patch.finalPrice = firstVisit; // estimate becomes the booked price
+      patch.holdExpiresAt = undefined; // no owner-action deadline
+    }
+
     await ctx.db.patch(b._id, patch);
 
     // Notifications (never block the booking on provider failures).
-    await ctx.scheduler.runAfter(0, internal.bookingNotifications.notifyRequested, {
-      bookingId: b._id,
-    });
+    if (!quoteRequired) {
+      await ctx.scheduler.runAfter(0, internal.bookingNotifications.notifyAutoConfirmed, {
+        bookingId: b._id,
+      });
+    } else {
+      await ctx.scheduler.runAfter(0, internal.bookingNotifications.notifyRequested, {
+        bookingId: b._id,
+        customerEmail: true,
+      });
+    }
 
-    return { ok: true as const, bookingId: b._id, quoteRequired };
+    return { ok: true as const, bookingId: b._id, quoteRequired, confirmed: !quoteRequired };
   },
 });
 

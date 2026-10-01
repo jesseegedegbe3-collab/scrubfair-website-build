@@ -81,7 +81,7 @@ interface WizardState {
   halfBaths: string;
   homeType: string;
   // Step 3
-  serviceType: "standard" | "deep" | "move_in_out" | "other";
+  serviceType: "standard" | "deep" | "move_in_out" | "commercial" | "showhomes" | "post_construction" | "carpet" | "other";
   frequency: "one_time" | "weekly" | "biweekly" | "monthly";
   addons: string[];
   condition: string;
@@ -172,6 +172,7 @@ export default function Book() {
   const [outsideArea, setOutsideArea] = useState(false);
   const [heldSlot, setHeldSlot] = useState<{ startUtc: number; timeKey: string; dateKey: string } | null>(null);
   const [slotJustTaken, setSlotJustTaken] = useState(false);
+  const [holdFailReason, setHoldFailReason] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState(""); // hidden field
   const [calendarMonth, setCalendarMonth] = useState<Date | undefined>(undefined);
 
@@ -223,7 +224,6 @@ export default function Book() {
   const holdSlot = useMutation(api.bookings.holdSlot);
   const releaseHold = useMutation(api.bookings.releaseHold);
   const submitBooking = useMutation(api.bookings.submitBooking);
-  const autoConfirm = useMutation(api.bookings.autoConfirmBooking);
 
   // Clean up hold if the customer leaves mid-flow.
   useEffect(() => {
@@ -297,10 +297,12 @@ export default function Book() {
         });
       } else {
         setSlotJustTaken(true);
+        setHoldFailReason(res.reason);
         setHeldSlot(null);
       }
     } catch {
       setSlotJustTaken(true);
+      setHoldFailReason("unknown");
     } finally {
       setSubmitting(false);
     }
@@ -350,16 +352,11 @@ export default function Book() {
         }
         return;
       }
-      // Customer's pick is the booking — confirm instantly and send their
-      // chosen confirmation channel.
-      if (leadId) {
-        await autoConfirm({ bookingId: leadId }).catch(() => {});
-      }
       trackBookingConversion(estimateResult?.firstVisit);
       navigate(
         `/book/thanks?name=${encodeURIComponent(w.firstName)}${
           heldSlot ? `&when=${encodeURIComponent(heldSlot.dateKey + " " + heldSlot.timeKey)}` : ""
-        }&est=${estimateResult?.firstVisit ?? ""}&via=${w.confirmVia}${estimateResult ? "" : "&qr=1"}`,
+        }&est=${estimateResult?.firstVisit ?? ""}${estimateResult ? "" : "&qr=1"}`,
       );
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -594,10 +591,14 @@ export default function Book() {
             <Field label="Service" required>
               <div className="grid gap-2 sm:grid-cols-2">
                 {[
-                  { v: "standard", t: "Standard clean", d: "A regular, top-to-bottom clean." },
-                  { v: "deep", t: "Deep clean", d: "The detailed first-time reset. One-time price." },
-                  { v: "move_in_out", t: "Move in / move out", d: "Empty-home detailed clean. One-time price." },
-                  { v: "other", t: "Something else", d: "Post-construction, carpet, showhome — describe below." },
+                  { v: "standard", t: "Standard Cleaning", d: "A regular, top-to-bottom clean." },
+                  { v: "deep", t: "Deep Cleaning", d: "The detailed first-time reset. One-time price." },
+                  { v: "move_in_out", t: "Move In / Move Out", d: "Empty-home detailed clean. One-time price." },
+                  { v: "commercial", t: "Commercial Cleaning", d: "Offices, retail, studios, and workspaces." },
+                  { v: "showhomes", t: "Showhome Cleaning", d: "Presentation-ready cleaning between viewings." },
+                  { v: "post_construction", t: "Post-Construction Cleaning", d: "Fine dust and debris cleanup after renovation." },
+                  { v: "carpet", t: "Carpet Cleaning", d: "Refresh carpeted rooms and high-traffic areas." },
+                  { v: "other", t: "Something else", d: "Describe what you need in special requests below." },
                 ].map((o) => (
                   <button
                     key={o.v}
@@ -789,7 +790,11 @@ export default function Book() {
                 </p>
                 {slotJustTaken && (
                   <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm font-medium text-amber-900" role="alert">
-                    That time was just taken, please choose another. Everything else you entered is saved.
+                    {holdFailReason === "outside_hours"
+                      ? "That start time no longer fits your cleaning length in our working day — please choose an earlier start."
+                      : holdFailReason === "before_lead_time" || holdFailReason === "past_max_advance"
+                        ? "That date is outside our booking window — please pick another day."
+                        : "That time was just taken, please choose another. Everything else you entered is saved."}
                   </div>
                 )}
                 {/* Real month-grid calendar: unavailable days are disabled */}
@@ -961,38 +966,10 @@ export default function Book() {
                 className="w-full resize-y rounded-lg border border-input px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
               />
             </Field>
-            <Field
-              label="How should we confirm your booking?"
-              required
-              helper="We'll send your booking confirmation by your choice — email or text message."
-            >
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => set("confirmVia", "email")}
-                  className={
-                    "flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors " +
-                    (w.confirmVia === "email"
-                      ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
-                      : "border-slate-200 text-brand-slate hover:border-brand-deep")
-                  }
-                >
-                  <Mail className="size-4" aria-hidden /> Email
-                </button>
-                <button
-                  type="button"
-                  onClick={() => set("confirmVia", "sms")}
-                  className={
-                    "flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors " +
-                    (w.confirmVia === "sms"
-                      ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
-                      : "border-slate-200 text-brand-slate hover:border-brand-deep")
-                  }
-                >
-                  <MessageSquare className="size-4" aria-hidden /> Text message
-                </button>
-              </div>
-            </Field>
+            <p className="rounded-lg bg-brand-sky-tint p-4 text-sm text-brand-slate">
+              After you submit, your booking is <b>confirmed instantly</b> and a confirmation
+              email is sent to <b>{w.email || "your email"}</b>.
+            </p>
 
             {/* Honeypot — visible only to bots (hidden off-screen + not focusable) */}
             <div

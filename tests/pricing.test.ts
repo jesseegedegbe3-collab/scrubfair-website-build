@@ -77,8 +77,14 @@ describe("pricing engine — required table", () => {
     expect(estimate({ sqft: 4001, bedrooms: 1, fullBaths: 1, halfBaths: 0, homeType: "apartment" })).toBeNull();
   });
 
-  it("null for homeType 'other'", () => {
-    expect(estimate({ sqft: 1000, bedrooms: 2, fullBaths: 1, halfBaths: 0, homeType: "other" })).toBeNull();
+  it("null for unknown homeType 'igloo'", () => {
+    expect(estimate({ sqft: 1000, bedrooms: 2, fullBaths: 1, halfBaths: 0, homeType: "igloo" })).toBeNull();
+  });
+
+  it("homeType 'other' is now valid and prices like a bungalow", () => {
+    const other = estimate({ sqft: 1000, bedrooms: 2, fullBaths: 1, halfBaths: 0, homeType: "other" })!;
+    const bungalow = estimate({ sqft: 1000, bedrooms: 2, fullBaths: 1, halfBaths: 0, homeType: "bungalow" })!;
+    expect(other.firstVisit).toBe(bungalow.firstVisit);
   });
 
   it("null for 7 bedrooms", () => {

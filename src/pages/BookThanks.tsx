@@ -30,7 +30,7 @@ export default function BookThanks() {
             Request received{name ? `, ${name}` : ""}!
           </h1>
           <p className="mx-auto mt-4 max-w-xl text-lg text-brand-slate">
-            Here's exactly where things stand — in plain language.
+            Your booking is confirmed — no approval step needed. Here's the summary.
           </p>
         </div>
       </section>
@@ -40,35 +40,45 @@ export default function BookThanks() {
         <div className="rounded-2xl border border-brand-sky bg-brand-sky-tint p-6 sm:p-8">
           <h2 className="flex items-center gap-2 text-lg font-bold text-brand-ink">
             <ClipboardList className="size-5 text-brand-deep" aria-hidden />
-            What you were shown is an estimated quote — not a confirmed booking
+            Your booking is confirmed — here's your estimated quote
           </h2>
-          <p className="mt-3 text-sm leading-relaxed text-brand-slate">{ESTIMATE_NOTICE}</p>
-          <p className="mt-2 text-sm leading-relaxed text-brand-slate">{ESTIMATE_DIFFERENCE_NOTE}</p>
-          <p className="mt-2 text-xs text-brand-slate">{TAX_NOTE}</p>
-          {est && (
-            <p className="mt-4 text-2xl font-bold text-brand-ink">
-              Estimated first visit: {cad(parseInt(est, 10))}
+          {est ? (
+            <>
+              <p className="mt-4 text-2xl font-bold text-brand-ink">
+                Estimated first visit: {cad(parseInt(est, 10))}
+              </p>
+              <p className="mt-2 text-sm leading-relaxed text-brand-slate">{ESTIMATE_NOTICE}</p>
+              <p className="mt-2 text-sm leading-relaxed text-brand-slate">{ESTIMATE_DIFFERENCE_NOTE}</p>
+              <p className="mt-2 text-xs text-brand-slate">{TAX_NOTE}</p>
+            </>
+          ) : (
+            <p className="mt-3 text-sm leading-relaxed text-brand-slate">
+              Your home's details fall outside our online estimator, so we'll confirm your
+              price personally after reviewing your request.
             </p>
           )}
           {quoteRequired && (
             <p className="mt-4 text-sm font-medium text-brand-ink">
-              You didn't get an instant estimate — we'll prepare a personal quote after
-              reviewing your home's details.
+              No time was picked — we'll schedule your visit with you directly.
             </p>
           )}
         </div>
 
-        {/* Requested time */}
+        {/* Booked time */}
         {when && (
           <div className="mt-6 flex items-start gap-4 rounded-2xl border border-slate-200 p-6">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-sky-soft text-brand-deep">
               <CalendarClock className="size-5" aria-hidden />
             </span>
             <div>
-              <p className="font-semibold text-brand-ink">Requested date &amp; time</p>
+              <p className="font-semibold text-brand-ink">Booked date &amp; time</p>
               <p className="mt-1 text-sm text-brand-slate">
-                {when} (Winnipeg time) — shown as <b>Requested</b>, never confirmed, until we
-                confirm it with you. We're holding this time while we review.
+                {when} (Winnipeg time) — your time is reserved. A confirmation email is on
+                its way to you. Need to change it? Call {" "}
+                <a href={`tel:${BRAND.phoneTel}`} className="font-semibold text-brand-deep">
+                  {BRAND.phone}
+                </a>
+                .
               </p>
             </div>
           </div>
@@ -80,16 +90,16 @@ export default function BookThanks() {
           <ol className="mt-5 space-y-5">
             {[
               {
-                t: "We review your request",
-                d: "We check your home's details, the estimated price, and the time you picked.",
+                t: "Confirmation email",
+                d: "You'll receive a confirmation email in the next few minutes with your booking details.",
               },
               {
-                t: "We confirm the final price and time",
-                d: `Expect to hear from us ${RESPONSE_TIME}, by phone or email. If anything changes, we'll tell you before your booking is final.`,
+                t: "We call about entry details",
+                d: `We'll call you ${RESPONSE_TIME} before your visit to arrange access (keys, codes, parking) — never send door or alarm codes by email.`,
               },
               {
-                t: "Your booking becomes final",
-                d: "Once you approve the final price and time, you're on the schedule. We'll arrange entry details by phone then — never send door or alarm codes by email.",
+                t: "We clean",
+                d: "Your team arrives during your booked window. The final price is confirmed on your home's actual details — we'll call first if anything changes.",
               },
             ].map((s, i) => (
               <li key={s.t} className="flex gap-4">

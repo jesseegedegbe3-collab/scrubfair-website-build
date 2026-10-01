@@ -87,56 +87,6 @@ async function sendEmailResilient(
   return { sent: false, warning: `email failed: ${lastFailure ?? "unknown"}` };
 }
 
-/**
- * Customer SMS via a generic REST SMS provider.
- *
- * OWNER SETUP (optional — for customer text confirmations):
- *   SMS_API_KEY     — API key for the SMS provider (Telnyx recommended: pay-per-message, no monthly fee, Canadian numbers)
- *   SMS_FROM_NUMBER — your purchased SMS number in E.164 format, e.g. +12045550123
- * Uses Telnyx's REST API (https://developers.telnyx.com). To switch providers,
- * change the URL/payload in this one function.
- *
- * If not configured, the text is NOT lost: it is mirrored to the owner's
- * Telegram so they can send it manually and the customer still gets served.
- */
-async function sendCustomerSms(
-  phone: string,
-  text: string,
-): Promise<{ sent: boolean; warning?: string }> {
-  const key = process.env.SMS_API_KEY;
-  const from = process.env.SMS_FROM_NUMBER;
-  if (!key || !from) {
-    await sendTelegramResilient(
-      `<b>📩 SMS not configured — send this manually to ${escTg(phone)}:</b>\n\n${escTg(text)}`,
-    );
-    return { sent: false, warning: "SMS_API_KEY/SMS_FROM_NUMBER not configured — mirrored to Telegram" };
-  }
-  const to = phone.startsWith("+") ? phone : `+1${phone.replace(/\D/g, "")}`;
-  for (let i = 0; i < 2; i++) {
-    try {
-      const resp = await fetch("https://api.telnyx.com/v2/messages", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ to, from, text }),
-      });
-      if (!resp.ok) {
-        const body = await resp.text().catch(() => "");
-        throw new Error(`HTTP ${resp.status} ${body.slice(0, 140)}`);
-      }
-      return { sent: true };
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`[booking-notify] sms attempt ${i + 1} failed:`, msg);
-      if (i === 0) continue;
-      await sendTelegramResilient(
-        `<b>⚠️ SMS failed after retry for ${escTg(phone)} — send manually:</b>\n\n${escTg(text)}`,
-      );
-      return { sent: false, warning: `sms failed after retry: ${msg}` };
-    }
-  }
-  return { sent: false, warning: "sms: unreachable" };
-}
-
 async function sendTelegramResilient(text: string): Promise<{ sent: boolean; warning?: string }> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -420,45 +370,39 @@ export const notifyAutoConfirmed = internalAction({
     if (b.outsideArea) reviewFlags.push("📍 OUTSIDE SERVICE AREA");
     if (b.quoteRequired) reviewFlags.push("💬 QUOTE REQUIRED — schedule manually");
 
-    // 1. Customer — chosen channel only.
-    if (b.confirmVia === "sms") {
-      await sendCustomerSms(
-        b.phone,
-        `ScrubFair: Your cleaning is booked for ${fmtWpgDateTime(b.slotStartUtc ?? Date.now())}. Est. ${price}. Address: ${fullAddress(b)}. Questions? 204-952-8685.`,
-      );
-    } else {
-      await sendEmailResilient({
-        to: b.email,
-        subject: `Your ScrubFair cleaning is booked — ${b.slotStartUtc != null ? winnipegDateKey(b.slotStartUtc) : "ScrubFair"}`,
-        replyTo: process.env.BOOKING_NOTIFY_EMAIL ?? NOTIFY_EMAIL,
-        html: `
-        <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
-          <h2 style="color:#0f172a;">Your cleaning is booked, ${esc(b.firstName)}! 🎉</h2>
-          <p style="color:#334155;font-size:14px;">This confirms your booking request has been received and your time is reserved.</p>
-          <div style="background:#f5fbfe;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:14px;color:#0f172a;line-height:1.7;">
-            <b>When:</b> ${esc(when)}<br/>
-            <b>Where:</b> ${esc(fullAddress(b))}<br/>
-            <b>Estimated price:</b> ${esc(price)}<br/>
-          </div>
-          <p style="color:#334155;font-size:13px;line-height:1.6;">
-            The final price is confirmed on your home's actual details; we'll call before the visit if anything changes.<br/>
-            ${esc(TAX_NOTE)}<br/>
-            We'll call to arrange entry details (keys, codes, parking) — never send codes by email.<br/>
-            Need to change or cancel? Call <b>204-952-8685</b> as soon as you can: [OWNER TO DECIDE — cancellation notice period and any fee].
-          </p>
-          <p style="color:#64748b;font-size:12px;">ScrubFair · Winnipeg, MB · scrubfair.ca</p>
-        </div>`,
-        text: [
-          `Hi ${b.firstName}, your cleaning is booked.`,
-          ``,
-          `When: ${when}`,
-          `Where: ${fullAddress(b)}`,
-          `Estimated price: ${price}`,`,`,
-          `We'll call to arrange entry details. To change or cancel: 204-952-8685.`,
-          `— ScrubFair`,
-        ].join("\n"),
-      });
-    }
+    // 1. Customer — instant email confirmation (email-only by owner directive).
+    await sendEmailResilient({
+      to: b.email,
+      subject: `Your ScrubFair cleaning is booked — ${b.slotStartUtc != null ? winnipegDateKey(b.slotStartUtc) : "ScrubFair"}`,
+      replyTo: process.env.BOOKING_NOTIFY_EMAIL ?? NOTIFY_EMAIL,
+      html: `
+      <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
+        <h2 style="color:#0f172a;">Your cleaning is booked, ${esc(b.firstName)}! 🎉</h2>
+        <p style="color:#334155;font-size:14px;">Your booking is confirmed — your time is reserved.</p>
+        <div style="background:#f5fbfe;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:14px;color:#0f172a;line-height:1.7;">
+          <b>When:</b> ${esc(when)}<br/>
+          <b>Where:</b> ${esc(fullAddress(b))}<br/>
+          <b>Estimated price:</b> ${esc(price)}<br/>
+        </div>
+        <p style="color:#334155;font-size:13px;line-height:1.6;">
+          The price above is an estimate based on the details you entered; we'll confirm it on your home's actual details and call you first if anything changes.<br/>
+          ${esc(TAX_NOTE)}<br/>
+          We'll call to arrange entry details (keys, codes, parking) — never send codes by email.<br/>
+          Need to change or cancel? Call <b>204-952-8685</b> as soon as you can: [OWNER TO DECIDE — cancellation notice period and any fee].
+        </p>
+        <p style="color:#64748b;font-size:12px;">ScrubFair · Winnipeg, MB · scrubfair.ca</p>
+      </div>`,
+      text: [
+        `Hi ${b.firstName}, your cleaning is booked.`,
+        ``,
+        `When: ${when}`,
+        `Where: ${fullAddress(b)}`,
+        `Estimated price: ${price}`,
+        ``,
+        `We'll call to arrange entry details. To change or cancel: 204-952-8685.`,
+        `— ScrubFair`,
+      ].join("\n"),
+    });
 
     // 2. Owner — instant alert with review flags.
     const parts = [
