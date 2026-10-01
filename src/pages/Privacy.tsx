@@ -58,10 +58,42 @@ const SECTIONS = [
           </li>
         </ul>
         <p>
+          When you use our <strong>booking request form</strong> (/book), we
+          additionally collect, to prepare your estimated quote and reserve a
+          time:
+        </p>
+        <ul className="ml-5 list-disc space-y-1.5">
+          <li>
+            <strong>Home service address</strong> (street, unit, city, postal
+            code) — to confirm we serve your area and to schedule the right
+            team
+          </li>
+          <li>
+            <strong>Home details</strong> — square footage (excluding the
+            basement), number of bedrooms and bathrooms, and home type — used
+            only to calculate your estimate and estimate job length
+          </li>
+          <li>
+            <strong>Service preferences</strong> — type of clean, frequency,
+            add-ons, and the home's current condition
+          </li>
+          <li>
+            <strong>Scheduling details</strong> — your requested date and
+            time (held, not confirmed, until we confirm it with you)
+          </li>
+          <li>
+            <strong>Practical notes</strong> — pets, preferred entry method,
+            and any special requests you choose to share
+          </li>
+        </ul>
+        <p>
           We do <strong>not</strong> collect passport numbers, payment card
-          numbers, or any government-issued identifiers through this
-          website. Payment processing happens offline after a quote is
-          accepted.
+          numbers, or any government-issued identifiers through this website.
+          We do <strong>not</strong> ask for or store door codes, gate codes,
+          alarm codes, or passwords through this website — entry details are
+          only ever collected by phone after a booking is confirmed. No
+          online payment is taken through this site. Payment processing
+          happens offline after a quote is accepted.
         </p>
         <p>
           If you submit a review through our website, the review text,
@@ -79,9 +111,12 @@ const SECTIONS = [
       <p>
         We use the information you submit solely to respond to your inquiry,
         prepare and confirm a quote, schedule service, and — once you're a
-        customer — communicate with you about upcoming bookings. We do not
-        sell, rent, or trade your personal information. We do not use your
-        information for automated profiling or marketing decision-making.
+        customer — communicate with you about upcoming bookings. Booking
+        requests are reviewed by our team before any booking is confirmed,
+        and your requested time is held (not guaranteed) until we confirm.
+        We do not sell, rent, or trade your personal information. We do not
+        use your information for automated profiling or marketing
+        decision-making.
       </p>
     ),
   },

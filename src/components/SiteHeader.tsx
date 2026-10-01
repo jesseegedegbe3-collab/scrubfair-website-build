@@ -69,16 +69,17 @@ export function SiteHeader() {
         <div className="hidden items-center gap-3 md:flex">
           <a
             href={`tel:${BRAND.phoneTel}`}
-            className="hidden items-center gap-2 text-sm font-medium text-brand-slate hover:text-brand-deep lg:inline-flex"
+            aria-label="Call us"
+            className="inline-flex items-center gap-2 rounded-lg border border-brand-deep px-4 py-2 text-sm font-semibold text-brand-deep transition-colors hover:bg-brand-sky-tint"
           >
             <Phone className="size-4" aria-hidden />
-            {BRAND.phone}
+            Call Us
           </a>
           <Button
             asChild
             className="bg-brand-deep text-white shadow-brand hover:bg-brand-deep-hover"
           >
-            <Link to="/contact">Get a Free Quote</Link>
+            <Link to="/book">Book a Cleaning</Link>
           </Button>
         </div>
 
@@ -121,13 +122,13 @@ export function SiteHeader() {
               className="flex items-center gap-2 rounded-md px-3 py-3 text-base font-medium text-brand-slate hover:bg-brand-sky-tint hover:text-brand-deep"
             >
               <Phone className="size-4" aria-hidden />
-              {BRAND.phone}
+              Call Us · {BRAND.phone}
             </a>
             <Button
               asChild
               className="mt-2 bg-brand-deep text-white shadow-brand hover:bg-brand-deep-hover"
             >
-              <Link to="/contact">Get a Free Quote</Link>
+              <Link to="/book">Book a Cleaning</Link>
             </Button>
           </nav>
         </div>

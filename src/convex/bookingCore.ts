@@ -11,11 +11,14 @@
 // ============================================================================
 
 import { internal } from "./_generated/api";
-import { Id } from "./_generated/dataModel";
-import { Doc } from "./_generated/dataModel";
+import { Id, Doc, DataModel } from "./_generated/dataModel";
+import { GenericDatabaseReader, GenericDatabaseWriter } from "convex/server";
 import { AVAILABILITY } from "../config/availability";
-import { winnipegDateKey } from "../lib/tz";
+import { winnipegDateKey, utcFromWpgDateAndTime } from "../lib/tz";
 import type { BusySpan } from "../lib/scheduling";
+
+type DBReader = GenericDatabaseReader<DataModel>;
+type DBWriter = GenericDatabaseWriter<DataModel>;
 
 // ---------------------------------------------------------------------------
 // Busy spans: everything that occupies a team
@@ -30,22 +33,22 @@ export const OCCUPYING_STATUSES = ["requested", "confirmed", "completed"] as con
  * buffer (stored that way at write time); calendar blocks are raw ranges.
  */
 export async function busySpansForDate(
-  db: { query: (t: string) => any },
+  db: DBReader,
   dateKey: string,
 ): Promise<BusySpan[]> {
-  const dayStart = utcFromWpgDateAndTimeSrv(dateKey, "00:00");
-  const dayEnd = utcFromWpgDateAndTimeSrv(dateKey, "23:59");
+  const dayStart = utcFromWpgDateAndTime(dateKey, "00:00");
+  const dayEnd = utcFromWpgDateAndTime(dateKey, "23:59");
   const spans: BusySpan[] = [];
 
   // Bookings with a slot on this date.
   const bookings = await db
     .query("bookings")
-    .withIndex("by_slotStart", (q: any) =>
+    .withIndex("by_slotStart", (q) =>
       q.gte("slotStartUtc", dayStart).lte("slotStartUtc", dayEnd),
     )
     .collect();
   for (const b of bookings) {
-    if (!OCCUPYING_STATUSES.includes(b.status)) continue;
+    if (!(OCCUPYING_STATUSES as readonly string[]).includes(b.status)) continue;
     if (b.slotStartUtc == null || b.slotEndUtc == null) continue;
     spans.push({
       startUtc: b.slotStartUtc,
@@ -70,7 +73,7 @@ export async function busySpansForDate(
   // Admin blocks.
   const blocks = await db
     .query("calendarBlocks")
-    .withIndex("by_startUtc", (q: any) =>
+    .withIndex("by_startUtc", (q) =>
       q.gte("startUtc", dayStart).lte("startUtc", dayEnd),
     )
     .collect();
@@ -81,18 +84,15 @@ export async function busySpansForDate(
   return spans;
 }
 
-// Keep the import local to avoid circulars in the bundler graph.
-import { utcFromWpgDateAndTime as utcFromWpgDateAndTimeSrv } from "../lib/tz";
-
 /**
  * Serialize on the schedule-day document: get/create it and mark it modified.
  * Under Convex OCC, two simultaneous mutations for the same day will conflict
  * here; the losing transaction retries from scratch and re-evaluates.
  */
-export async function touchScheduleDay(db: any, dateKey: string): Promise<void> {
+export async function touchScheduleDay(db: DBWriter, dateKey: string): Promise<void> {
   const existing = await db
     .query("scheduleDays")
-    .withIndex("by_dateKey", (q: any) => q.eq("dateKey", dateKey))
+    .withIndex("by_dateKey", (q) => q.eq("dateKey", dateKey))
     .unique();
   if (existing) {
     await db.patch(existing._id, {
@@ -109,10 +109,10 @@ export async function touchScheduleDay(db: any, dateKey: string): Promise<void> 
 }
 
 /** Release all active holds for a booking (on submit, cancel, decline). */
-export async function releaseHoldsForBooking(db: any, bookingId: Id<"bookings">): Promise<void> {
+export async function releaseHoldsForBooking(db: DBWriter, bookingId: Id<"bookings">): Promise<void> {
   const holds = await db
     .query("slotHolds")
-    .withIndex("by_booking", (q: any) => q.eq("bookingId", bookingId))
+    .withIndex("by_booking", (q) => q.eq("bookingId", bookingId))
     .collect();
   for (const h of holds) {
     await db.delete(h._id);

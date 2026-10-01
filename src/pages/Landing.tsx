@@ -8,6 +8,7 @@ import {
   Star,
   Clock,
   Heart,
+  Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IMAGES } from "@/lib/images";
@@ -72,8 +73,8 @@ export default function Home() {
               size="lg"
               className="h-14 bg-brand-deep px-8 text-base text-white shadow-brand-lg hover:bg-brand-deep-hover"
             >
-              <Link to="/contact">
-                Get a Free Quote
+              <Link to="/book">
+                Book a Cleaning
                 <ArrowRight className="ml-2 size-5" aria-hidden />
               </Link>
             </Button>
@@ -83,7 +84,10 @@ export default function Home() {
               variant="outline"
               className="h-14 border-brand-deep px-8 text-base text-brand-deep hover:bg-brand-sky-tint"
             >
-              <Link to="/services">See Our Services</Link>
+              <a href={`tel:${BRAND.phoneTel}`}>
+                <Phone className="mr-2 size-5" aria-hidden />
+                Call Us
+              </a>
             </Button>
           </div>
 
@@ -342,8 +346,8 @@ export default function Home() {
                 size="lg"
                 className="h-14 bg-white px-8 text-base text-brand-deep hover:bg-brand-sky-tint"
               >
-                <Link to="/contact">
-                  Get a Free Quote
+                <Link to="/book">
+                  Book a Cleaning
                   <ArrowRight className="ml-2 size-5" aria-hidden />
                 </Link>
               </Button>

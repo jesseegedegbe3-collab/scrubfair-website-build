@@ -150,6 +150,7 @@ const schema = defineSchema(
       finalPrice: v.optional(v.number()), // owner-entered at confirm
 
       // Owner workflow
+      confirmedAt: v.optional(v.number()), // when the owner confirmed
       ownerNotes: v.optional(v.string()),
       source: v.optional(v.string()), // "website" | "phone" | "admin"
       utm: v.optional(

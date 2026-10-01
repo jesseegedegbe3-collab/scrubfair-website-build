@@ -13,7 +13,8 @@ const QUICK_LINKS = [
 const SERVICE_LINKS = [
   { to: "/services#standard", label: "Standard Cleaning" },
   { to: "/services#deep", label: "Deep Cleaning" },
-  { to: "/contact", label: "Get a Quote" },
+  { to: "/book", label: "Book a Cleaning" },
+  { to: "/contact", label: "Contact Us" },
 ] as const;
 
 export function SiteFooter() {

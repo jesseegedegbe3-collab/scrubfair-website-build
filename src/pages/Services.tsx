@@ -135,8 +135,8 @@ export default function Services() {
               size="lg"
               className="mt-7 h-14 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover"
             >
-              <Link to="/contact">
-                Get a Free Quote
+              <Link to="/book">
+                Book a Cleaning
                 <ArrowRight className="ml-2 size-5" aria-hidden />
               </Link>
             </Button>

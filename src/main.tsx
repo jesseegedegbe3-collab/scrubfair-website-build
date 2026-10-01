@@ -5,6 +5,7 @@ import { VlyToolbar } from "../vly-toolbar-readonly.tsx";
 import { ConvexAuthProvider } from "@convex-dev/auth/react";
 import { ConvexReactClient } from "convex/react";
 import React, { StrictMode, useEffect, lazy, Suspense } from "react";
+import { installCallTracking } from "@/lib/analytics";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Route, Routes, useLocation } from "react-router";
 import "./index.css";
@@ -14,6 +15,9 @@ const Home = lazy(() => import("./pages/Landing.tsx"));
 const Services = lazy(() => import("./pages/Services.tsx"));
 const Reviews = lazy(() => import("./pages/Reviews.tsx"));
 const Contact = lazy(() => import("./pages/Contact.tsx"));
+const Book = lazy(() => import("./pages/Book.tsx"));
+const BookThanks = lazy(() => import("./pages/BookThanks.tsx"));
+const AdminBookings = lazy(() => import("./pages/AdminBookings.tsx"));
 const LeaveReview = lazy(() => import("./pages/LeaveReview.tsx"));
 const Privacy = lazy(() => import("./pages/Privacy.tsx"));
 const Terms = lazy(() => import("./pages/Terms.tsx"));
@@ -103,6 +107,9 @@ const convex = new ConvexReactClient(import.meta.env.VITE_CONVEX_URL as string);
 
 
 
+// Fire a conversion event whenever any tel: link is tapped (spec §1).
+if (typeof window !== "undefined") installCallTracking();
+
 function RouteSyncer() {
   const location = useLocation();
   useEffect(() => {
@@ -146,6 +153,8 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="/services" element={<Services />} />
                 <Route path="/reviews" element={<Reviews />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/book" element={<Book />} />
+                <Route path="/book/thanks" element={<BookThanks />} />
                 <Route path="/leave-review" element={<LeaveReview />} />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
@@ -162,6 +171,7 @@ createRoot(document.getElementById("root")!).render(
                   </RequireAuth>
                 }
               />
+              <Route path="/admin" element={<AdminBookings />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </Suspense>

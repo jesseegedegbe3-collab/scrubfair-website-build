@@ -47,13 +47,30 @@ const SECTIONS = [
     body: (
       <>
         <p>
-          Submitting our contact form creates a <strong>request for a
-          quote</strong>, not a binding service contract. Quotes are
-          prepared manually by our team and sent back to you via email or
-          phone. A booking becomes firm only when:
+          Submitting our contact form or our booking form (/book) creates a
+          <strong> request for a quote</strong>, not a binding service
+          contract.
+        </p>
+        <p>
+          Any price shown in the booking form, on the thank-you page, or in
+          an email is an <strong>estimated quote</strong> based on the
+          details you entered — it is not a final price, and an estimated
+          price is never a confirmed booking. ScrubFair reviews every
+          request and confirms the final price with you directly before
+          your booking is final. The final price may differ if your home's
+          details are different from what you entered. Taxes, where
+          applicable, are added to the final price.
+        </p>
+        <p>
+          When you pick a date and time in the booking form, that time is
+          <strong> held as a request</strong> while we review — it is not
+          reserved or guaranteed until we confirm it. For recurring
+          service, the first visit is scheduled first and we confirm your
+          recurring day and time with you afterwards. A booking becomes
+          firm only when:
         </p>
         <ul className="ml-5 list-disc space-y-1.5">
-          <li>You have received a written quote from us</li>
+          <li>You have received a confirmed final price from us</li>
           <li>You have confirmed the service date and scope by reply</li>
           <li>We have acknowledged your confirmation</li>
         </ul>
