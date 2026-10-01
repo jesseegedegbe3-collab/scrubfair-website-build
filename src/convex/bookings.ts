@@ -395,6 +395,7 @@ export const submitBooking = mutation({
     entryMethod: v.string(),
     specialRequests: v.optional(v.string()),
     honeypot: v.optional(v.string()),
+    confirmVia: v.union(v.literal("email"), v.literal("sms")),
     utm: v.optional(
       v.object({
         source: v.optional(v.string()),
@@ -465,6 +466,7 @@ export const submitBooking = mutation({
       pets: args.pets,
       petsNote: args.petsNote?.slice(0, 500),
       entryMethod: args.entryMethod,
+      confirmVia: args.confirmVia,
       needsReview:
         b.needsReview || b.condition === "months" || b.condition === "year_plus",
       quoteRequired,
@@ -512,6 +514,37 @@ export const submitBooking = mutation({
     });
 
     return { ok: true as const, bookingId: b._id, quoteRequired };
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Customer self-service confirmation — the customer's pick is the booking.
+// ---------------------------------------------------------------------------
+// Called automatically right after a successful submit. Status becomes
+// "confirmed" so the slot is firm and future customers can't take it.
+// The owner is still notified and can still decline/cancel/reschedule from
+// /admin; flags (pests, condition, outside area) simply surface in Telegram
+// as "review before the visit" instead of blocking the booking.
+// ---------------------------------------------------------------------------
+export const autoConfirmBooking = mutation({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, args) => {
+    const b = await ctx.db.get(args.bookingId);
+    if (!b) throw new Error("Booking not found.");
+    if (b.status !== "requested") return { ok: true as const }; // idempotent
+    const now = Date.now();
+    await ctx.db.patch(args.bookingId, {
+      status: "confirmed",
+      confirmedAt: now,
+      finalPrice: b.priceFirstVisit, // the estimate becomes the booked price
+      holdExpiresAt: undefined, // no owner-action deadline anymore
+      slotExpired: false,
+      updatedAt: now,
+    });
+    await ctx.scheduler.runAfter(0, internal.bookingNotifications.notifyAutoConfirmed, {
+      bookingId: args.bookingId,
+    });
+    return { ok: true as const };
   },
 });
 

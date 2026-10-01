@@ -126,6 +126,7 @@ const schema = defineSchema(
       pets: v.boolean(),
       petsNote: v.optional(v.string()),
       entryMethod: v.string(), // "home" | "key" | "lockbox" | "other"
+      confirmVia: v.optional(v.union(v.literal("email"), v.literal("sms"))), // customer's chosen confirmation channel
 
       // Flags
       needsReview: v.boolean(), // condition sets this; price NOT auto-changed

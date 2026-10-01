@@ -87,6 +87,56 @@ async function sendEmailResilient(
   return { sent: false, warning: `email failed: ${lastFailure ?? "unknown"}` };
 }
 
+/**
+ * Customer SMS via a generic REST SMS provider.
+ *
+ * OWNER SETUP (optional — for customer text confirmations):
+ *   SMS_API_KEY     — API key for the SMS provider (Telnyx recommended: pay-per-message, no monthly fee, Canadian numbers)
+ *   SMS_FROM_NUMBER — your purchased SMS number in E.164 format, e.g. +12045550123
+ * Uses Telnyx's REST API (https://developers.telnyx.com). To switch providers,
+ * change the URL/payload in this one function.
+ *
+ * If not configured, the text is NOT lost: it is mirrored to the owner's
+ * Telegram so they can send it manually and the customer still gets served.
+ */
+async function sendCustomerSms(
+  phone: string,
+  text: string,
+): Promise<{ sent: boolean; warning?: string }> {
+  const key = process.env.SMS_API_KEY;
+  const from = process.env.SMS_FROM_NUMBER;
+  if (!key || !from) {
+    await sendTelegramResilient(
+      `<b>📩 SMS not configured — send this manually to ${escTg(phone)}:</b>\n\n${escTg(text)}`,
+    );
+    return { sent: false, warning: "SMS_API_KEY/SMS_FROM_NUMBER not configured — mirrored to Telegram" };
+  }
+  const to = phone.startsWith("+") ? phone : `+1${phone.replace(/\D/g, "")}`;
+  for (let i = 0; i < 2; i++) {
+    try {
+      const resp = await fetch("https://api.telnyx.com/v2/messages", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ to, from, text }),
+      });
+      if (!resp.ok) {
+        const body = await resp.text().catch(() => "");
+        throw new Error(`HTTP ${resp.status} ${body.slice(0, 140)}`);
+      }
+      return { sent: true };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.warn(`[booking-notify] sms attempt ${i + 1} failed:`, msg);
+      if (i === 0) continue;
+      await sendTelegramResilient(
+        `<b>⚠️ SMS failed after retry for ${escTg(phone)} — send manually:</b>\n\n${escTg(text)}`,
+      );
+      return { sent: false, warning: `sms failed after retry: ${msg}` };
+    }
+  }
+  return { sent: false, warning: "sms: unreachable" };
+}
+
 async function sendTelegramResilient(text: string): Promise<{ sent: boolean; warning?: string }> {
   const token = process.env.TELEGRAM_BOT_TOKEN;
   const chatId = process.env.TELEGRAM_CHAT_ID;
@@ -296,9 +346,9 @@ function ownerTelegram(b: any, kind: string): string {
 // Scheduled actions (the booking mutation schedules these)
 // ---------------------------------------------------------------------------
 
-/** Owner + customer notifications on a new request. */
+/** Owner + (quote-required only) customer notifications on a new request. */
 export const notifyRequested = internalAction({
-  args: { bookingId: v.id("bookings") },
+  args: { bookingId: v.id("bookings"), customerEmail: v.optional(v.boolean()) },
   handler: async (ctx, args) => {
     const b = await ctx.runQuery(internal.bookings.getByIdInternal, { id: args.bookingId });
     if (!b) return;
@@ -316,35 +366,113 @@ export const notifyRequested = internalAction({
     // Owner: Telegram with phone first.
     await sendTelegramResilient(ownerTelegram(b, "requested"));
 
-    // Customer: request received, estimate language, slot is held not confirmed.
-    const estLine = b.priceFirstVisit != null
-      ? `Estimated first visit: ${cad(b.priceFirstVisit)}${b.pricePerVisit != null ? `\nEstimated per visit after: ${cad(b.pricePerVisit)}` : ""}`
-      : "We'll prepare a custom quote after reviewing your home's details.";
-    const slotLine = b.slotStartUtc != null
-      ? `Requested date and time: ${fmtWpgDateTime(b.slotStartUtc)} — shown as "Requested" until we confirm. We are holding this time for you while we review.`
-      : "You did not select a time — we will propose one after reviewing your home.";
-    await sendEmailResilient({
-      to: b.email,
-      subject: `We received your ScrubFair request — next steps`,
-      html: customerRequestHtml(b, estLine, slotLine),
-      text: [
-        `Hi ${b.firstName},`,
-        ``,
-        `We received your cleaning request. The price below is an estimated quote based on the details you entered. This is not a confirmed booking yet.`,
-        ``,
-        estLine,
-        ``,
-        slotLine,
-        ``,
-        `What happens next: we review your request, confirm the final price by phone or email, and then your booking is final.`,
-        ESTIMATE_DIFFERENCE_NOTE,
-        TAX_NOTE,
-        ``,
-        `Questions? Call us at 204-952-8685 or reply to this email.`,
-        ``,
-        `— ScrubFair, Winnipeg`,
-      ].join("\n"),
-    });
+    // Customer email is only sent in the quote-required path (no instant
+    // self-service confirmation). Otherwise notifyAutoConfirmed handles the
+    // customer on their chosen channel and this would be a duplicate.
+    if (args.customerEmail === true) {
+      const estLine = b.priceFirstVisit != null
+        ? `Estimated first visit: ${cad(b.priceFirstVisit)}${b.pricePerVisit != null ? `\nEstimated per visit after: ${cad(b.pricePerVisit)}` : ""}`
+        : "We'll prepare a custom quote after reviewing your home's details.";
+      const slotLine = "You did not select a time — we will propose one after reviewing your home.";
+      await sendEmailResilient({
+        to: b.email,
+        subject: `We received your ScrubFair request — next steps`,
+        html: customerRequestHtml(b, estLine, slotLine),
+        text: [
+          `Hi ${b.firstName},`,
+          ``,
+          `We received your cleaning request. The price below is an estimated quote based on the details you entered. This is not a confirmed booking yet.`,
+          ``,
+          estLine,
+          ``,
+          slotLine,
+          ``,
+          `What happens next: we review your request, confirm the final price by phone or email, and then your booking is final.`,
+          ESTIMATE_DIFFERENCE_NOTE,
+          TAX_NOTE,
+          ``,
+          `Questions? Call us at 204-952-8685 or reply to this email.`,
+          ``,
+          `— ScrubFair, Winnipeg`,
+        ].join("\n"),
+      });
+    }
+  },
+});
+
+// ---------------------------------------------------------------------------
+// Auto-confirmation (customer self-service booking)
+// ---------------------------------------------------------------------------
+
+/** Instant customer confirmation on their chosen channel + owner alert. */
+export const notifyAutoConfirmed = internalAction({
+  args: { bookingId: v.id("bookings") },
+  handler: async (ctx, args) => {
+    const b = await ctx.runQuery(internal.bookings.getByIdInternal, { id: args.bookingId });
+    if (!b) return;
+    const when = b.slotStartUtc != null
+      ? `${fmtWpgDateTime(b.slotStartUtc)} (${fmtWpgWindow(b.slotStartUtc, b.durationMinutes ?? 0)})`
+      : "a time we will arrange with you";
+    const price = b.finalPrice != null ? cad(b.finalPrice) : "to be confirmed on site details";
+    const reviewFlags: string[] = [];
+    if (b.pestReview) reviewFlags.push("🚨 PESTS reported — review/call before the visit");
+    if (b.needsReview) reviewFlags.push("⚠️ Heavy condition — check duration/price");
+    if (b.outsideArea) reviewFlags.push("📍 OUTSIDE SERVICE AREA");
+    if (b.quoteRequired) reviewFlags.push("💬 QUOTE REQUIRED — schedule manually");
+
+    // 1. Customer — chosen channel only.
+    if (b.confirmVia === "sms") {
+      await sendCustomerSms(
+        b.phone,
+        `ScrubFair: Your cleaning is booked for ${fmtWpgDateTime(b.slotStartUtc ?? Date.now())}. Est. ${price}. Address: ${fullAddress(b)}. Questions? 204-952-8685.`,
+      );
+    } else {
+      await sendEmailResilient({
+        to: b.email,
+        subject: `Your ScrubFair cleaning is booked — ${b.slotStartUtc != null ? winnipegDateKey(b.slotStartUtc) : "ScrubFair"}`,
+        replyTo: process.env.BOOKING_NOTIFY_EMAIL ?? NOTIFY_EMAIL,
+        html: `
+        <div style="font-family:Inter,system-ui,sans-serif;max-width:560px;margin:0 auto;padding:20px;">
+          <h2 style="color:#0f172a;">Your cleaning is booked, ${esc(b.firstName)}! 🎉</h2>
+          <p style="color:#334155;font-size:14px;">This confirms your booking request has been received and your time is reserved.</p>
+          <div style="background:#f5fbfe;border:1px solid #e2e8f0;border-radius:8px;padding:14px;font-size:14px;color:#0f172a;line-height:1.7;">
+            <b>When:</b> ${esc(when)}<br/>
+            <b>Where:</b> ${esc(fullAddress(b))}<br/>
+            <b>Estimated price:</b> ${esc(price)}<br/>
+          </div>
+          <p style="color:#334155;font-size:13px;line-height:1.6;">
+            The final price is confirmed on your home's actual details; we'll call before the visit if anything changes.<br/>
+            ${esc(TAX_NOTE)}<br/>
+            We'll call to arrange entry details (keys, codes, parking) — never send codes by email.<br/>
+            Need to change or cancel? Call <b>204-952-8685</b> as soon as you can: [OWNER TO DECIDE — cancellation notice period and any fee].
+          </p>
+          <p style="color:#64748b;font-size:12px;">ScrubFair · Winnipeg, MB · scrubfair.ca</p>
+        </div>`,
+        text: [
+          `Hi ${b.firstName}, your cleaning is booked.`,
+          ``,
+          `When: ${when}`,
+          `Where: ${fullAddress(b)}`,
+          `Estimated price: ${price}`,`,`,
+          `We'll call to arrange entry details. To change or cancel: 204-952-8685.`,
+          `— ScrubFair`,
+        ].join("\n"),
+      });
+    }
+
+    // 2. Owner — instant alert with review flags.
+    const parts = [
+      `<b>✅ ScrubFair — BOOKING AUTO-CONFIRMED</b>`,
+      ``,
+      `<b>Who:</b> ${escTg(customerName(b))} — <b>${escTg(b.phone)}</b>`,
+      `<b>Email:</b> ${escTg(b.email)}`,`<b>Where:</b> ${escTg(fullAddress(b))}`,
+      `<b>What:</b> ${escTg(SERVICE_LABELS[b.serviceType] ?? b.serviceType)} · ${escTg(b.frequency)}`,
+      b.slotStartUtc != null ? `<b>Slot:</b> ${escTg(fmtWpgDateTime(b.slotStartUtc))}` : `<b>Slot:</b> none`,
+      `<b>Est. price:</b> ${b.finalPrice != null ? cad(b.finalPrice) : "quote required"}`,
+      ``,
+      reviewFlags.length ? `<b>Review before the visit:</b>\n${escTg(reviewFlags.join("\n"))}` : `<b>Review before the visit:</b> None`,
+    ].filter(Boolean);
+    await sendTelegramResilient(parts.join("\n"));
   },
 });
 

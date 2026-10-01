@@ -27,7 +27,9 @@ import {
   Clock,
   Home as HomeIcon,
   Loader2,
+  Mail,
   MapPin,
+  MessageSquare,
   Phone,
   Send,
   ShieldCheck,
@@ -89,6 +91,7 @@ interface WizardState {
   petsNote: string;
   entryMethod: string;
   specialRequests: string;
+  confirmVia: "email" | "sms";
 }
 
 const initialWizard: WizardState = {
@@ -116,6 +119,7 @@ const initialWizard: WizardState = {
   petsNote: "",
   entryMethod: "",
   specialRequests: "",
+  confirmVia: "email",
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -219,6 +223,7 @@ export default function Book() {
   const holdSlot = useMutation(api.bookings.holdSlot);
   const releaseHold = useMutation(api.bookings.releaseHold);
   const submitBooking = useMutation(api.bookings.submitBooking);
+  const autoConfirm = useMutation(api.bookings.autoConfirmBooking);
 
   // Clean up hold if the customer leaves mid-flow.
   useEffect(() => {
@@ -328,6 +333,7 @@ export default function Book() {
         entryMethod: w.entryMethod,
         specialRequests: w.specialRequests || undefined,
         honeypot: honeypot || undefined,
+        confirmVia: w.confirmVia,
       });
       if (!res.ok) {
         if (res.reason === "slot_taken") {
@@ -344,11 +350,16 @@ export default function Book() {
         }
         return;
       }
+      // Customer's pick is the booking — confirm instantly and send their
+      // chosen confirmation channel.
+      if (leadId) {
+        await autoConfirm({ bookingId: leadId }).catch(() => {});
+      }
       trackBookingConversion(estimateResult?.firstVisit);
       navigate(
         `/book/thanks?name=${encodeURIComponent(w.firstName)}${
           heldSlot ? `&when=${encodeURIComponent(heldSlot.dateKey + " " + heldSlot.timeKey)}` : ""
-        }&est=${estimateResult?.firstVisit ?? ""}${estimateResult ? "" : "&qr=1"}`,
+        }&est=${estimateResult?.firstVisit ?? ""}&via=${w.confirmVia}${estimateResult ? "" : "&qr=1"}`,
       );
     } catch (err) {
       setServerError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
@@ -949,6 +960,38 @@ export default function Book() {
                 placeholder="Anything we should know? (Date and time were picked in the previous step.)"
                 className="w-full resize-y rounded-lg border border-input px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
               />
+            </Field>
+            <Field
+              label="How should we confirm your booking?"
+              required
+              helper="We'll send your booking confirmation by your choice — email or text message."
+            >
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => set("confirmVia", "email")}
+                  className={
+                    "flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors " +
+                    (w.confirmVia === "email"
+                      ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
+                      : "border-slate-200 text-brand-slate hover:border-brand-deep")
+                  }
+                >
+                  <Mail className="size-4" aria-hidden /> Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => set("confirmVia", "sms")}
+                  className={
+                    "flex items-center justify-center gap-2 rounded-lg border px-4 py-3 text-sm font-semibold transition-colors " +
+                    (w.confirmVia === "sms"
+                      ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
+                      : "border-slate-200 text-brand-slate hover:border-brand-deep")
+                  }
+                >
+                  <MessageSquare className="size-4" aria-hidden /> Text message
+                </button>
+              </div>
             </Field>
 
             {/* Honeypot — visible only to bots (hidden off-screen + not focusable) */}
