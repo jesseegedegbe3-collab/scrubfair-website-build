@@ -15,6 +15,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
+import type { DateRange } from "react-day-picker";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -35,6 +36,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Calendar } from "@/components/ui/calendar";
 import { BRAND } from "@/lib/brand";
 import {
   ADDON_OPTIONS,
@@ -167,6 +169,7 @@ export default function Book() {
   const [heldSlot, setHeldSlot] = useState<{ startUtc: number; timeKey: string; dateKey: string } | null>(null);
   const [slotJustTaken, setSlotJustTaken] = useState(false);
   const [honeypot, setHoneypot] = useState(""); // hidden field
+  const [calendarMonth, setCalendarMonth] = useState<Date | undefined>(undefined);
 
   const set = <K extends keyof WizardState>(k: K, v: WizardState[K]) =>
     setW((prev) => ({ ...prev, [k]: v }));
@@ -355,7 +358,27 @@ export default function Book() {
   }
 
   const busy = submitting;
-  const currentStepLabel = step <= 4 ? STEP_LABELS[step - 1] : STEP_LABELS[step - 1];
+
+  // Calendar window + bookable-day set for the month grid.
+  const minBookableDay = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 2); // minLeadDays placeholder lives in availability config
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }, []);
+  const maxBookableDay = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 60); // maxAdvanceDays
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }, []);
+  const availableDays = useMemo(() => {
+    return (bookableDates ?? []).map((d) => isoToDate(d.dateKey));
+  }, [bookableDates]);
+  const firstBookableMonth = useMemo(() => {
+    const first = availableDays[0];
+    return first ?? minBookableDay;
+  }, [availableDays, minBookableDay]);
 
   return (
     <div className="bg-white">
@@ -758,31 +781,41 @@ export default function Book() {
                     That time was just taken, please choose another. Everything else you entered is saved.
                   </div>
                 )}
-                <div className="grid gap-2 sm:grid-cols-4 lg:grid-cols-5">
-                  {(bookableDates ?? []).slice(0, 20).map((d) => (
-                    <button
-                      key={d.dateKey}
-                      type="button"
-                      onClick={() => {
-                        setPickedDate(d.dateKey);
-                        setHeldSlot(null);
-                      }}
-                      className={
-                        "rounded-lg border px-3 py-2 text-xs font-semibold transition-colors " +
-                        (pickedDate === d.dateKey
-                          ? "border-brand-deep bg-brand-deep text-white"
-                          : "border-slate-200 text-brand-ink hover:border-brand-deep")
-                      }
-                    >
-                      {formatDateShort(d.dateKey)}
-                    </button>
-                  ))}
+                {/* Real month-grid calendar: unavailable days are disabled */}
+                <div className="mx-auto w-fit rounded-2xl border border-slate-200 bg-white p-4">
+                  <Calendar
+                    mode="single"
+                    selected={pickedDate ? isoToDate(pickedDate) : undefined}
+                    onSelect={(d) => {
+                      if (!d) return;
+                      setPickedDate(dateToIso(d));
+                      setHeldSlot(null);
+                      setSlotJustTaken(false);
+                    }}
+                    numberOfMonths={1}
+                    defaultMonth={pickedDate ? isoToDate(pickedDate) : firstBookableMonth}
+                    month={calendarMonth ?? (pickedDate ? isoToDate(pickedDate) : firstBookableMonth)}
+                    onMonthChange={(m) => setCalendarMonth(m)}
+                    disabled={[{ before: minBookableDay }, { after: maxBookableDay }]}
+                    modifiers={{ available: availableDays }}
+                    modifiersClassNames={{
+                      available: "text-brand-ink",
+                    }}
+                    classNames={{
+                      disabled: "text-slate-300 line-through opacity-50", // greyed-out unavailable days
+                      selected:
+                        "bg-brand-deep !text-white rounded-lg hover:!bg-brand-deep-hover focus-visible:!ring-brand-deep",
+                    }}
+                  />
                   {bookableDates === undefined && (
-                    <div className="col-span-full flex items-center gap-2 py-6 text-sm text-brand-slate">
+                    <div className="flex items-center justify-center gap-2 py-4 text-sm text-brand-slate">
                       <Loader2 className="size-4 animate-spin" aria-hidden /> Loading available days…
                     </div>
                   )}
                 </div>
+                <p className="text-center text-xs text-slate-500">
+                  Crossed-out days are fully booked or closed. Pick an open day, then a start time below.
+                </p>
                 {pickedDate && (
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {(daySlots ?? []).map((s) => (
@@ -918,10 +951,19 @@ export default function Book() {
               />
             </Field>
 
-            {/* Honeypot — hidden from humans */}
-            <div className="absolute left -9999px" aria-hidden="true">
+            {/* Honeypot — visible only to bots (hidden off-screen + not focusable) */}
+            <div
+              style={{
+                position: "absolute",
+                left: "-9999px",
+                width: "1px",
+                height: "1px",
+                overflow: "hidden",
+              }}
+              aria-hidden="true"
+            >
               <label>
-                Leave this field empty
+                Comments
                 <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
               </label>
             </div>
@@ -1059,4 +1101,20 @@ function formatDateShort(dateKey: string): string {
   const [y, m, d] = dateKey.split("-").map(Number);
   const dt = new Date(Date.UTC(y, m - 1, d));
   return dt.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+/** "YYYY-MM-DD" (Winnipeg local date) → JS Date at local midnight. */
+function isoToDate(dateKey: string): Date {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  return new Date(y, m - 1, d);
+}
+
+/** JS Date → "YYYY-MM-DD" using the browser-side local calendar. For the
+ * booking calendar this equals the Winnipeg date for all Manitoba users;
+ * the authoritative slot math is server-side either way. */
+function dateToIso(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
 }

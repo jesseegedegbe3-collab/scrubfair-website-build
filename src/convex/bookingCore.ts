@@ -90,13 +90,21 @@ export async function busySpansForDate(
  * here; the losing transaction retries from scratch and re-evaluates.
  */
 export async function touchScheduleDay(db: DBWriter, dateKey: string): Promise<void> {
+  // NOTE: deliberately .collect() instead of .unique() — .unique() THROWS when
+  // two concurrent first-touches inserted duplicate day docs, which surfaced
+  // to customers as a false "slot taken" error. This version self-heals any
+  // existing duplicates and keeps the OCC serialization intact.
   const existing = await db
     .query("scheduleDays")
     .withIndex("by_dateKey", (q) => q.eq("dateKey", dateKey))
-    .unique();
-  if (existing) {
-    await db.patch(existing._id, {
-      version: existing.version + 1,
+    .collect();
+  if (existing.length > 0) {
+    // Heal duplicates: keep the first doc, delete any extras.
+    for (const dup of existing.slice(1)) {
+      await db.delete(dup._id);
+    }
+    await db.patch(existing[0]._id, {
+      version: existing[0].version + 1,
       updatedAt: Date.now(),
     });
   } else {
