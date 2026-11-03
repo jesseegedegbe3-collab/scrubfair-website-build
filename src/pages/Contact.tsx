@@ -165,11 +165,11 @@ export default function Contact() {
               Contact
             </p>
             <h1 className="mt-3 text-4xl font-bold text-brand-ink sm:text-5xl">
-              Let's get your home on the calendar.
+              Let's get your space on the calendar.
             </h1>
             <p className="mt-5 text-lg text-brand-slate">
               Tell us what you need cleaned and what you're looking for.
-              Whether it's a home, business, move, showhome, or renovation,
+              Whether it's a home, workspace, move, showhome, or renovation,
               we'll get back to you within one business day with a free,
               no-obligation quote.
             </p>

@@ -24,10 +24,10 @@ const SECTIONS = [
     body: (
       <>
         <p>
-          ScrubFair provides cleaning services — including Standard
-          Cleaning, Deep Cleaning, Commercial Cleaning, Move In / Move Out
-          Cleaning, Showhome Cleaning, Post-Construction Cleaning, and
-          Carpet Cleaning — exclusively within{" "}
+          ScrubFair provides residential and janitorial services — including
+          Standard Cleaning, Deep Cleaning, Janitorial Services, Move In /
+          Move Out Cleaning, Showhome Cleaning, Post-Construction Cleaning,
+          and Carpet Cleaning — exclusively within{" "}
           <strong>Winnipeg, Manitoba, Canada</strong>. We do not currently
           service areas outside Winnipeg. Quotes for locations outside the
           service area will not be issued.
@@ -225,7 +225,7 @@ export function Terms() {
             </h1>
             <p className="mt-4 max-w-2xl text-lg text-brand-slate">
               The rules and expectations for using scrubfair.ca and hiring
-              ScrubFair for residential cleaning in Winnipeg.
+              ScrubFair for residential and janitorial services in Winnipeg.
             </p>
             <p className="mt-3 text-xs text-brand-slate">
               Last updated: <strong>{LAST_UPDATED}</strong>

@@ -1,7 +1,7 @@
 // Centralized business info for ScrubFair. Update here, not in components.
 export const BRAND = {
   name: "ScrubFair",
-  tagline: "Winnipeg's careful, no-pressure cleaning service.",
+  tagline: "Winnipeg's careful, no-pressure residential & janitorial services.",
   city: "Winnipeg",
   province: "Manitoba",
   country: "Canada",
@@ -65,10 +65,10 @@ export const SERVICES = [
   {
     id: "commercial",
     image: "commercialOffice",
-    name: "Commercial Cleaning",
+    name: "Janitorial Services",
     tagline: "A cleaner workplace, ready for business.",
     description:
-      "Dependable cleaning for offices, studios, retail spaces, and other commercial environments — so your team and customers walk into a space that feels cared for.",
+      "Dependable janitorial care for offices, studios, retail spaces, and other work environments — so your team and customers walk into a space that feels cared for.",
     benefits: [
       "A professional first impression for customers and visitors",
       "A cleaner, more comfortable environment for your team",

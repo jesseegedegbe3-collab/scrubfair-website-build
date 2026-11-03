@@ -413,7 +413,8 @@ export default function Book() {
           </h1>
           <p className="mt-3 text-brand-slate">
             You'll see your estimated price before you pick a time — and nothing is
-            confirmed until ScrubFair confirms it with you. Winnipeg homes only.
+            confirmed until ScrubFair confirms it with you. Winnipeg homes and
+            businesses only.
           </p>
         </div>
       </section>
@@ -606,7 +607,7 @@ export default function Book() {
                   { v: "standard", t: "Standard Cleaning", d: "A regular, top-to-bottom clean." },
                   { v: "deep", t: "Deep Cleaning", d: "The detailed first-time reset. One-time price." },
                   { v: "move_in_out", t: "Move In / Move Out", d: "Empty-home detailed clean. One-time price." },
-                  { v: "commercial", t: "Commercial Cleaning", d: "Offices, retail, studios, and workspaces." },
+                  { v: "commercial", t: "Janitorial Services", d: "Offices, retail, studios, and workspaces." },
                   { v: "showhomes", t: "Showhome Cleaning", d: "Presentation-ready cleaning between viewings." },
                   { v: "post_construction", t: "Post-Construction Cleaning", d: "Fine dust and debris cleanup after renovation." },
                   { v: "carpet", t: "Carpet Cleaning", d: "Refresh carpeted rooms and high-traffic areas." },

@@ -36,9 +36,9 @@ export default function Services() {
               A cleaner space, whatever your next chapter.
             </h1>
             <p className="mt-5 text-lg text-brand-slate">
-              From recurring home care to move-day resets and commercial spaces,
-              ScrubFair brings careful, reliable cleaning to homes and businesses
-              across Winnipeg.
+              From recurring home care to move-day resets and janitorial spaces,
+              ScrubFair brings careful, reliable residential and janitorial
+              services across Winnipeg.
             </p>
           </div>
         </div>

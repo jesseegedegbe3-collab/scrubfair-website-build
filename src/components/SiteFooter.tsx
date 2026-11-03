@@ -28,8 +28,8 @@ export function SiteFooter() {
             </Link>
             <p className="mt-4 max-w-md text-sm text-brand-slate">
               {BRAND.tagline} Locally owned in {BRAND.city},{" "}
-              {BRAND.province}, and proudly serving Winnipeg homes with care,
-              consistency, and a satisfaction guarantee.
+              {BRAND.province}, and proudly serving Winnipeg homes and
+              businesses with care, consistency, and a satisfaction guarantee.
             </p>
             <div className="mt-6 flex items-center gap-4 text-sm">
               <a

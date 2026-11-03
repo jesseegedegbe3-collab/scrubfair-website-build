@@ -59,8 +59,8 @@ export default function Home() {
           <p
                        className="mt-5 max-w-2xl text-lg text-brand-slate sm:text-xl"
           >
-            Winnipeg's careful, locally-owned cleaning service for homes,
-            businesses, move days, showhomes, and more. Walk into a space that
+            Winnipeg's careful, locally-owned residential and janitorial
+            services for homes, offices, move days, showhomes, and more. Walk into a space that
             feels finished, cared for, and ready to enjoy — without losing your
             time to the cleaning.
           </p>
@@ -149,7 +149,7 @@ export default function Home() {
               Cleaning that fits the way you live and work.
             </h2>
             <p className="mt-4 text-lg text-brand-slate">
-              From recurring residential care and deep resets to commercial,
+              From recurring residential care and deep resets to janitorial,
               move-related, post-construction, showhome, and carpet cleaning,
               you'll get the same careful, consistent ScrubFair standard.
             </p>
@@ -190,7 +190,7 @@ export default function Home() {
               More ways we can help
             </p>
             <p className="mt-1 text-sm text-brand-slate">
-              Commercial, move in/out, showhome, post-construction, and carpet cleaning.
+              Janitorial, move in/out, showhome, post-construction, and carpet cleaning.
             </p>
           </div>
 
