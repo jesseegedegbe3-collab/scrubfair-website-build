@@ -2,8 +2,8 @@ import { Link } from "react-router";
 import { useQuery } from "convex/react";
 import { ArrowRight, Star, Quote, Phone, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CallCta } from "@/components/CallCta";
 import { IMAGES } from "@/lib/images";
+import { BRAND } from "@/lib/brand";
 import { api } from "../convex/_generated/api";
 
 const fadeUp = {
@@ -175,10 +175,10 @@ export default function Reviews() {
               variant="outline"
               className="h-14 border-brand-deep px-8 text-base text-brand-deep hover:bg-white"
             >
-              <CallCta>
+              <a href={`tel:${BRAND.phoneTel}`}>
                 <Phone className="mr-2 size-5" aria-hidden />
                 Call us
-              </CallCta>
+              </a>
             </Button>
           </div>
         </div>

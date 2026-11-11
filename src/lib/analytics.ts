@@ -12,9 +12,6 @@
 // gtag('event','generate_lead') still fires so GA4/Ads sees the lead.
 // ============================================================================
 
-import { toast } from "sonner";
-import { BRAND } from "./brand";
-
 export const ADS_CONVERSION_ID = "AW-11192599006";
 
 /** Google Ads conversion label for booking submissions. [OWNER: fill in] */
@@ -68,33 +65,27 @@ export function trackCallTap(): void {
 }
 
 /**
- * True on devices without a phone app (desktop). A `tel:` link there does
- * nothing at all, so we add a visible fallback instead of a dead button.
+ * True on phones and tablets: a device that can hand a `tel:` link to the
+ * phone app. Desktops report a fine pointer (and no mobile UA), so they get
+ * sent to the contact page instead of a dead click.
  */
-function hasNoDialer(): boolean {
+function canPlaceCall(): boolean {
   if (typeof window === "undefined") return false;
-  const coarsePointer = window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
-  return !coarsePointer;
-}
-
-/** Desktop fallback for tel: links — show the number and copy it. */
-function showCallFallback(number: string): void {
-  const message = `Call us at ${number}`;
-  const clipboard = navigator.clipboard;
-  if (!clipboard?.writeText) {
-    toast(message);
-    return;
-  }
-  void clipboard.writeText(number).then(
-    () =>
-      toast.success(message, {
-        description: "Number copied to your clipboard.",
-      }),
-    () => toast(message, { description: "Tap to dial from your phone." }),
+  const coarsePointer =
+    window.matchMedia?.("(pointer: coarse)")?.matches ?? false;
+  const mobileUA = /Android|iPhone|iPad|iPod|Windows Phone|IEMobile|Mobile/i.test(
+    navigator.userAgent ?? "",
   );
+  return coarsePointer || mobileUA;
 }
 
-/** Install a global click listener that reports every tel: link tap. */
+/**
+ * Install the global tel: handler. It
+ *   1. reports every call tap for ad tracking, and
+ *   2. on desktop — where there is no dialer and a `tel:` link does nothing —
+ *      sends the visitor to the contact page instead.
+ * On phones the tap is left alone so the dialer opens with the business number.
+ */
 export function installCallTracking(): () => void {
   if (typeof document === "undefined") return () => {};
   const handler = (e: MouseEvent) => {
@@ -102,10 +93,24 @@ export function installCallTracking(): () => void {
       'a[href^="tel:"]',
     ) as HTMLAnchorElement | null;
     if (!anchor) return;
+
     trackCallTap();
-    if (!hasNoDialer()) return;
-    showCallFallback(BRAND.phone);
+
+    // Mobile: let the browser open the dialer with the phone number.
+    if (canPlaceCall()) return;
+
+    // Desktop: no phone app exists, so go to the contact page.
+    if (e.defaultPrevented || e.button !== 0) return;
+    e.preventDefault();
+    try {
+      // In-app navigation so the page doesn't do a full reload.
+      window.history.pushState({}, "", "/contact");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    } catch {
+      window.location.assign("/contact");
+    }
   };
-  document.addEventListener("click", handler, { passive: true });
+  // passive: false — we need preventDefault() to stop the dead tel: navigation.
+  document.addEventListener("click", handler, { passive: false });
   return () => document.removeEventListener("click", handler);
 }

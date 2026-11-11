@@ -11,7 +11,6 @@ import {
   Phone,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CallCta } from "@/components/CallCta";
 import { IMAGES } from "@/lib/images";
 import { BRAND, SERVICES, TRUST_BADGES } from "@/lib/brand";
 
@@ -85,10 +84,10 @@ export default function Home() {
               variant="outline"
               className="h-14 border-brand-deep px-8 text-base text-brand-deep hover:bg-brand-sky-tint"
             >
-              <CallCta>
+              <a href={`tel:${BRAND.phoneTel}`}>
                 <Phone className="mr-2 size-5" aria-hidden />
                 Call Us
-              </CallCta>
+              </a>
             </Button>
           </div>
 
@@ -358,10 +357,10 @@ export default function Home() {
                 variant="ghost"
                 className="h-14 px-8 text-base text-white hover:bg-white/10"
               >
-                <CallCta>
+                <a href={`tel:${BRAND.phoneTel}`}>
                   <Clock className="mr-2 size-5" aria-hidden />
                   Or call {BRAND.phone}
-                </CallCta>
+                </a>
               </Button>
             </div>
           </div>
