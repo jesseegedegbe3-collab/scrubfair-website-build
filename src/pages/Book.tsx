@@ -1174,12 +1174,17 @@ export default function Book() {
                         {s.timeKey}
                       </button>
                     ))}
-                    {daySlots?.length === 0 && (
+                    {daySlots?.length === 0 && !heldSlot && !busy && (
                       <p className="col-span-full text-sm text-brand-slate">
                         No open times on this day — try another date.
                       </p>
                     )}
                   </div>
+                )}
+                {heldSlot && (
+                  <p className="mt-3 text-sm font-semibold text-brand-deep">
+                    Selected: {formatDateShort(heldSlot.dateKey)} at {heldSlot.timeKey}
+                  </p>
                 )}
                 {w.frequency !== "one_time" && (
                   <p className="mt-4 rounded-lg bg-brand-sky-tint p-3 text-xs text-brand-slate">
@@ -1789,6 +1794,17 @@ function SizeIcon({ level }: { level: number }) {
       </g>
     </svg>
   );
+}
+
+function formatDateShort(dateKey: string): string {
+  const [y, m, d] = dateKey.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  return dt.toLocaleDateString("en-CA", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    timeZone: "UTC",
+  });
 }
 
 /** "YYYY-MM-DD" (Winnipeg local date) → JS Date at local midnight. */
