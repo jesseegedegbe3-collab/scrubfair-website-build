@@ -20,7 +20,7 @@
 //  - Honeypot + client & server validation; state preserved on errors.
 // ============================================================================
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -28,8 +28,6 @@ import type { Id } from "@/convex/_generated/dataModel";
 import {
   ArrowLeft,
   ArrowRight,
-  Bath,
-  BedDouble,
   Bug,
   Building2,
   CalendarDays,
@@ -37,10 +35,8 @@ import {
   Check,
   CheckCircle2,
   Clock,
-  DoorOpen,
   Hammer,
   HelpCircle,
-  Home as HomeIcon,
   KeyRound,
   Layers,
   Loader2,
@@ -198,15 +194,6 @@ const SERVICE_CHOICES = [
   { v: "other", t: "Something else", d: "Tell us in the last step.", Icon: HelpCircle },
 ] as const;
 
-const HOME_TYPE_ICONS: Record<string, typeof HomeIcon> = {
-  bungalow: HomeIcon,
-  two_storey: Building2,
-  townhouse: DoorOpen,
-  apartment: Building2,
-  condo: Building2,
-  other: HelpCircle,
-};
-
 const ENTRY_CHOICES = [
   { v: "home", l: "I'll be home", Icon: User },
   { v: "key", l: "Key", Icon: KeyRound },
@@ -264,10 +251,18 @@ export default function Book() {
     addonCount,
   });
 
-  // A custom-quote home skips the time step entirely.
+  // Skip questions that can only have one answer:
+  //  - a custom-quote home skips the date & time step entirely;
+  //  - deep / move-in-out cleans are one-time only, so "how often?" is moot.
+  const oneTimeOnly = w.serviceType === "deep" || w.serviceType === "move_in_out";
   const flow = useMemo(
-    () => FLOW.filter((s) => !(s.id === "time" && estimateResult === null)),
-    [estimateResult],
+    () =>
+      FLOW.filter(
+        (s) =>
+          !(s.id === "time" && estimateResult === null) &&
+          !(s.id === "frequency" && oneTimeOnly),
+      ),
+    [estimateResult, oneTimeOnly],
   );
 
   const current = flow[Math.min(step, flow.length - 1)];
@@ -304,6 +299,13 @@ export default function Book() {
   const totalWeight = flow.reduce((sum, s) => sum + s.weight, 0);
   const doneWeight = flow.slice(0, step).reduce((sum, s) => sum + s.weight, 0);
   const isLast = step >= flow.length - 1;
+  // Single-select steps move on by themselves, so they need no Continue button.
+  const movesOnItsOwn =
+    stepId === "service" ||
+    stepId === "frequency" ||
+    stepId === "homeType" ||
+    stepId === "condition" ||
+    stepId === "pests";
   const rawPct = isLast
     ? 100
     : ((doneWeight + current.weight * 0.4) / totalWeight) * 100;
@@ -400,8 +402,8 @@ export default function Book() {
           return setError("Enter your square footage or tap the closest size.");
         if (w.sqft) {
           const n = parseInt(w.sqft, 10);
-          if (!Number.isFinite(n) || n < 100 || n > 20000)
-            return setError("Enter a number between 100 and 20,000.");
+          if (!Number.isFinite(n) || n < 100)
+            return setError("That looks a little small — enter at least 100 sq ft.");
         }
         return advance();
       case "bathrooms":
@@ -650,6 +652,7 @@ export default function Book() {
                             set("frequency", o.value as WizardState["frequency"]),
                           )
                         }
+                        renderIcon={() => <FrequencyIcon value={o.value} />}
                         title={o.label}
                       />
                     );
@@ -666,7 +669,7 @@ export default function Book() {
                       key={o.value}
                       selected={w.homeType === o.value}
                       onClick={() => pick(() => set("homeType", o.value))}
-                      icon={HOME_TYPE_ICONS[o.value] ?? HelpCircle}
+                      renderIcon={() => <HomeKindIcon kind={o.value} />}
                       title={o.label}
                       centered
                     />
@@ -678,11 +681,11 @@ export default function Book() {
             {stepId === "bedrooms" && (
               <Question title="How many bedrooms?" hint="Include basement bedrooms if we're cleaning them.">
                 <Counter
-                  icon={BedDouble}
+                  icon={BedIcon}
+                  label="Bedrooms"
                   value={w.bedrooms}
                   max={10}
                   onChange={(v) => set("bedrooms", String(v))}
-                  quick={[1, 2, 3, 4]}
                 />
               </Question>
             )}
@@ -694,15 +697,17 @@ export default function Book() {
               >
                 <div className="space-y-3">
                   <Counter
-                    icon={Bath}
+                    icon={BathIcon}
                     label="Full bathrooms"
+                    hint="Tub or shower"
                     value={w.fullBaths}
                     max={8}
                     onChange={(v) => set("fullBaths", String(v))}
                   />
                   <Counter
-                    icon={Bath}
+                    icon={BathIcon}
                     label="Half bathrooms"
+                    hint="Toilet and sink only"
                     value={w.halfBaths}
                     max={6}
                     onChange={(v) => set("halfBaths", String(v))}
@@ -716,45 +721,71 @@ export default function Book() {
                 title="Roughly how big is the space?"
                 hint="Count only the finished floors we're cleaning — not the basement."
               >
-                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-                  {SQFT_BUCKETS.map((b) => (
-                    <ChoiceCard
-                      key={b.value}
-                      selected={w.sqftBucket === String(b.value) && !w.sqft}
-                      onClick={() => {
-                        set("sqftBucket", String(b.value));
-                        set("sqft", "");
-                        setError(null);
-                      }}
-                      title={b.label}
-                      centered
-                    />
-                  ))}
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {SQFT_BUCKETS.map((b, i) => {
+                    const on = w.sqftBucket === String(b.value) && !w.sqft;
+                    return (
+                      <button
+                        key={b.value}
+                        type="button"
+                        onClick={() => {
+                          set("sqftBucket", String(b.value));
+                          set("sqft", "");
+                          setError(null);
+                        }}
+                        aria-pressed={on}
+                        className={
+                          "flex flex-col items-center gap-3 rounded-2xl border px-4 py-5 text-center transition-all duration-150 " +
+                          (on
+                            ? "border-brand-deep bg-brand-sky-soft shadow-sm ring-1 ring-brand-deep"
+                            : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-brand-deep hover:shadow-sm")
+                        }
+                      >
+                        <span
+                          className={
+                            "flex size-11 items-center justify-center rounded-xl transition-colors " +
+                            (on
+                              ? "bg-brand-deep text-white"
+                              : "bg-brand-sky-tint text-brand-deep")
+                          }
+                        >
+                          <SizeIcon level={i} />
+                        </span>
+                        <span className="text-sm font-semibold leading-snug text-brand-ink">
+                          {b.label}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
-                <div className="mt-4">
+                <div className="mt-6">
                   <label className="text-sm font-semibold text-brand-ink" htmlFor="sqft">
                     Or type the exact square footage
                   </label>
                   <div className="relative mt-2">
                     <Ruler
-                      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+                      className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-slate-400"
                       aria-hidden
                     />
-                    <Input
+                    <input
                       id="sqft"
-                      type="number"
+                      type="text"
                       inputMode="numeric"
-                      min={100}
-                      max={20000}
+                      autoComplete="off"
                       value={w.sqft}
                       onChange={(e) => {
-                        set("sqft", e.target.value);
-                        if (e.target.value) set("sqftBucket", "");
+                        const digits = e.target.value.replace(/[^\d]/g, "").slice(0, 6);
+                        set("sqft", digits);
+                        if (digits) set("sqftBucket", "");
+                        setError(null);
                       }}
                       placeholder="e.g. 1200"
-                      className="h-12 pl-9"
+                      className="h-12 w-full rounded-lg border border-input pl-11 pr-4 text-base text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
                     />
                   </div>
+                  <p className="mt-1.5 text-xs text-brand-slate">
+                    Any number is fine — we'll confirm the details with you.
+                  </p>
                 </div>
               </Question>
             )}
@@ -1117,7 +1148,15 @@ export default function Book() {
                 title="Any pets we should know about?"
                 hint="Optional, but it helps."
               >
-                <YesNo value={w.pets} onChange={(v) => set("pets", v)} />
+                <YesNo
+                  value={w.pets}
+                  onChange={(v) => {
+                    // "No" needs nothing more, so move on; "Yes" stays so the
+                    // optional note can be typed.
+                    if (v === "no") pick(() => set("pets", v));
+                    else set("pets", v);
+                  }}
+                />
                 {w.pets === "yes" && (
                   <Input
                     value={w.petsNote}
@@ -1231,30 +1270,37 @@ export default function Book() {
             )}
             {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
 
-            <div className="mt-7 flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-between">
-              <Button
-                type="button"
-                onClick={next}
-                disabled={busy || (stepId === "time" && estimateResult !== null && !heldSlot)}
-                className="h-14 w-full bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover sm:w-auto"
-              >
-                {busy ? (
-                  <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
-                ) : null}
-                {stepId === "review" ? (
-                  <>
-                    Request This Cleaning <Send className="ml-2 size-4" aria-hidden />
-                  </>
-                ) : stepId === "addons" && w.addons.length === 0 ? (
-                  <>
-                    None needed <ArrowRight className="ml-2 size-4" aria-hidden />
-                  </>
-                ) : (
-                  <>
-                    Continue <ArrowRight className="ml-2 size-4" aria-hidden />
-                  </>
-                )}
-              </Button>
+            <div
+              className={
+                "mt-7 flex flex-col gap-3 sm:flex-row-reverse sm:items-center " +
+                (movesOnItsOwn ? "sm:justify-start" : "sm:justify-between")
+              }
+            >
+              {!movesOnItsOwn && (
+                <Button
+                  type="button"
+                  onClick={next}
+                  disabled={busy || (stepId === "time" && estimateResult !== null && !heldSlot)}
+                  className="h-14 w-full bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover sm:w-auto"
+                >
+                  {busy ? (
+                    <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
+                  ) : null}
+                  {stepId === "review" ? (
+                    <>
+                      Request This Cleaning <Send className="ml-2 size-4" aria-hidden />
+                    </>
+                  ) : stepId === "addons" && w.addons.length === 0 ? (
+                    <>
+                      None needed <ArrowRight className="ml-2 size-4" aria-hidden />
+                    </>
+                  ) : (
+                    <>
+                      Continue <ArrowRight className="ml-2 size-4" aria-hidden />
+                    </>
+                  )}
+                </Button>
+              )}
               {step > 0 ? (
                 <button
                   type="button"
@@ -1263,9 +1309,7 @@ export default function Book() {
                 >
                   <ArrowLeft className="size-4" aria-hidden /> Back
                 </button>
-              ) : (
-                <span />
-              )}
+              ) : null}
             </div>
           </motion.div>
         </AnimatePresence>
@@ -1345,6 +1389,7 @@ function ChoiceCard({
   disabled,
   onClick,
   icon: Icon,
+  renderIcon,
   title,
   description,
   centered,
@@ -1353,6 +1398,7 @@ function ChoiceCard({
   disabled?: boolean;
   onClick: () => void;
   icon?: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  renderIcon?: () => React.ReactNode;
   title: string;
   description?: string;
   centered?: boolean;
@@ -1372,14 +1418,14 @@ function ChoiceCard({
         (disabled ? "cursor-not-allowed opacity-40 hover:translate-y-0 " : "")
       }
     >
-      {Icon && (
+      {(renderIcon || Icon) && (
         <span
           className={
             "mb-2 flex size-10 items-center justify-center rounded-xl transition-colors " +
             (selected ? "bg-brand-deep text-white" : "bg-brand-sky-tint text-brand-deep")
           }
         >
-          <Icon className="size-5" aria-hidden />
+          {renderIcon ? renderIcon() : Icon ? <Icon className="size-5" aria-hidden /> : null}
         </span>
       )}
       <span className="block text-sm font-semibold text-brand-ink">{title}</span>
@@ -1397,64 +1443,77 @@ function ChoiceCard({
 
 function Counter({
   label,
+  hint,
   icon: Icon,
   value,
   max,
   onChange,
-  quick,
 }: {
   label?: string;
+  hint?: string;
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
   value: string;
   max: number;
   onChange: (v: number) => void;
-  quick?: number[];
 }) {
   const n = parseInt(value, 10) || 0;
+  // Direction drives whether the outgoing number slides up or down.
+  const previous = useRef(n);
+  const direction = n >= previous.current ? 1 : -1;
+  useEffect(() => {
+    previous.current = n;
+  }, [n]);
+
   return (
-    <div className="rounded-2xl border border-slate-200 p-4">
-      {label && <p className="mb-2 text-sm font-semibold text-brand-ink">{label}</p>}
-      <div className="flex items-center justify-between gap-4">
-        <button
+    <div className="rounded-2xl border border-slate-200 p-4 sm:p-5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex size-11 items-center justify-center rounded-xl bg-brand-sky-soft text-brand-deep">
+          <Icon className="size-6" aria-hidden />
+        </span>
+        <div className="text-right">
+          {label && <p className="text-sm font-semibold text-brand-ink">{label}</p>}
+          {hint && <p className="text-xs text-brand-slate">{hint}</p>}
+        </div>
+      </div>
+
+      <div className="mt-4 flex items-center justify-between gap-4">
+        <motion.button
           type="button"
           onClick={() => onChange(Math.max(0, n - 1))}
           aria-label={`Decrease ${label ?? "count"}`}
-          className="flex size-12 items-center justify-center rounded-xl border border-slate-200 text-xl font-bold text-brand-deep transition-colors hover:border-brand-deep hover:bg-brand-sky-tint"
+          whileTap={{ scale: 0.9 }}
+          className="flex size-14 items-center justify-center rounded-2xl border border-slate-200 text-2xl font-bold text-brand-deep transition-colors hover:border-brand-deep hover:bg-brand-sky-tint disabled:opacity-40"
+          disabled={n <= 0}
         >
           −
-        </button>
-        <span className="flex items-center gap-2 text-4xl font-extrabold text-brand-ink">
-          <Icon className="size-6 text-brand-deep" aria-hidden />
-          {n}
+        </motion.button>
+
+        <span className="relative flex h-16 w-24 items-center justify-center overflow-hidden">
+          <AnimatePresence initial={false} mode="popLayout">
+            <motion.span
+              key={n}
+              initial={{ y: direction > 0 ? 32 : -32, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              exit={{ y: direction > 0 ? -32 : 32, opacity: 0 }}
+              transition={{ type: "spring", stiffness: 320, damping: 26 }}
+              className="text-5xl font-extrabold tabular-nums text-brand-ink"
+            >
+              {n}
+            </motion.span>
+          </AnimatePresence>
         </span>
-        <button
+
+        <motion.button
           type="button"
           onClick={() => onChange(Math.min(max, n + 1))}
           aria-label={`Increase ${label ?? "count"}`}
-          className="flex size-12 items-center justify-center rounded-xl border border-slate-200 text-xl font-bold text-brand-deep transition-colors hover:border-brand-deep hover:bg-brand-sky-tint"
+          whileTap={{ scale: 0.9 }}
+          className="flex size-14 items-center justify-center rounded-2xl border border-slate-200 text-2xl font-bold text-brand-deep transition-colors hover:border-brand-deep hover:bg-brand-sky-tint disabled:opacity-40"
+          disabled={n >= max}
         >
           +
-        </button>
+        </motion.button>
       </div>
-      {quick && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {quick.map((q) => (
-            <button
-              key={q}
-              type="button"
-              onClick={() => onChange(q)}
-              className={
-                "rounded-full border px-3 py-1 text-xs font-semibold transition-colors " +
-                (n === q
-                  ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
-                  : "border-slate-200 text-brand-slate hover:border-brand-deep")
-              }
-            >
-              {q}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -1500,6 +1559,171 @@ function SummaryChip({
     >
       Edit {children}
     </button>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Custom icons (hand-drawn so every option has a matching picture)
+// ---------------------------------------------------------------------------
+const SVG = {
+  viewBox: "0 0 32 32",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round" as const,
+  strokeLinejoin: "round" as const,
+  "aria-hidden": true,
+  className: "size-6",
+};
+
+/** Bed — used by the bedrooms counter. */
+function BedIcon() {
+  return (
+    <svg {...SVG}>
+      <path d="M4 22v-6a2 2 0 0 1 2-2h20a2 2 0 0 1 2 2v6" />
+      <path d="M2 22h28" />
+      <rect x="7" y="13" width="8" height="4.5" rx="1.2" />
+      <path d="M4 25v2M28 25v2" />
+    </svg>
+  );
+}
+
+/** Bathtub — used by the bathroom counters. */
+function BathIcon() {
+  return (
+    <svg {...SVG}>
+      <path d="M4 15h24v4.5a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6z" />
+      <path d="M8.5 15V8.5a3 3 0 0 1 6 0" />
+      <path d="M10.5 26l-1.5 3M21.5 26l1.5 3" />
+    </svg>
+  );
+}
+
+/** House shapes — one per home type, so nothing falls back to a question mark. */
+function HomeKindIcon({ kind }: { kind: string }) {
+  switch (kind) {
+    case "bungalow":
+      return (
+        <svg {...SVG}>
+          <path d="M3 16 16 6.5 29 16" />
+          <path d="M6.5 15v12h19V15" />
+          <path d="M14 27v-6h4v6" />
+        </svg>
+      );
+    case "story_1_5":
+      return (
+        <svg {...SVG}>
+          <path d="M3.5 15 16 6l12.5 9" />
+          <path d="M6.5 14.5v12.5h19V14.5" />
+          <path d="M13 14.5v-4h6v4" />
+          <path d="M14 27v-6h4v6" />
+        </svg>
+      );
+    case "story_2":
+      return (
+        <svg {...SVG}>
+          <path d="M3.5 14 16 5l12.5 9" />
+          <path d="M6.5 13.5v13.5h19V13.5" />
+          <path d="M6.5 20h19" />
+        </svg>
+      );
+    case "story_2_5":
+      return (
+        <svg {...SVG}>
+          <path d="M3 13 16 4l13 9" />
+          <path d="M6.5 12.5v14.5h19V12.5" />
+          <path d="M6.5 19h19" />
+          <path d="M13 12.5v-3.5h6v3.5" />
+        </svg>
+      );
+    case "apartment":
+      return (
+        <svg {...SVG}>
+          <rect x="9" y="4.5" width="14" height="23" rx="1.5" />
+          <path d="M13 10h2M17 10h2M13 15h2M17 15h2M13 20h2M17 20h2" />
+          <path d="M14 27.5v-4h4v4" />
+        </svg>
+      );
+    case "split_level":
+      return (
+        <svg {...SVG}>
+          <path d="M3 19.5 11 12l5 4 5-4 8 7.5" />
+          <path d="M6 18.5v9h20v-9" />
+          <path d="M14.5 27.5v-5h4v5" />
+        </svg>
+      );
+    case "bi_level":
+      return (
+        <svg {...SVG}>
+          <path d="M3.5 16 16 8l12.5 8" />
+          <path d="M6.5 16v11h19V16" />
+          <path d="M9.5 21.5h5M17.5 21.5h5" />
+        </svg>
+      );
+    default:
+      return (
+        <svg {...SVG}>
+          <path d="M3.5 16 16 6.5 28.5 16" />
+          <path d="M6.5 15v12h19V15" />
+          <path d="M12 21h.01M16 21h.01M20 21h.01" strokeWidth={2.8} />
+        </svg>
+      );
+  }
+}
+
+/** Calendar rhythm — one per frequency option (once, weekly, every 2 weeks, monthly). */
+function FrequencyIcon({ value }: { value: string }) {
+  return (
+    <svg {...SVG}>
+      <rect x="5.5" y="7" width="21" height="19.5" rx="2.5" />
+      <path d="M5.5 13h21M11 4.5V9M21 4.5V9" />
+      {value === "one_time" && (
+        <path d="M12.5 19.5l2.5 2.5 4.5-5" strokeWidth={2.2} />
+      )}
+      {value === "weekly" && (
+        <g fill="currentColor" stroke="none">
+          <circle cx="11.5" cy="19" r="1.7" />
+          <circle cx="16" cy="19" r="1.7" />
+          <circle cx="20.5" cy="19" r="1.7" />
+        </g>
+      )}
+      {value === "biweekly" && (
+        <g stroke="none">
+          <circle cx="11.5" cy="19" r="1.7" fill="currentColor" />
+          <circle cx="16" cy="19" r="1.7" fill="currentColor" opacity={0.25} />
+          <circle cx="20.5" cy="19" r="1.7" fill="currentColor" />
+        </g>
+      )}
+      {value === "monthly" && (
+        <g fill="currentColor" stroke="none">
+          <circle cx="10.5" cy="17.5" r="1.3" />
+          <circle cx="15.5" cy="17.5" r="1.3" />
+          <circle cx="20.5" cy="17.5" r="1.3" />
+          <circle cx="10.5" cy="22" r="1.3" />
+          <circle cx="15.5" cy="22" r="1.3" />
+          <circle cx="20.5" cy="22" r="1.3" />
+        </g>
+      )}
+    </svg>
+  );
+}
+
+/** Footprint that grows with the size bucket. */
+function SizeIcon({ level }: { level: number }) {
+  const size = 9 + level * 2.4;
+  const offset = (32 - size) / 2;
+  return (
+    <svg {...SVG}>
+      <rect
+        x={offset + 3}
+        y={offset + 3}
+        width={size}
+        height={size}
+        rx="2"
+        strokeWidth={2}
+      />
+      <path d={`M${offset + 7} ${offset + 9}h2`} strokeWidth={1.6} opacity={0.6} />
+    </svg>
   );
 }
 
