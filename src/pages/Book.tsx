@@ -1,40 +1,63 @@
 // ============================================================================
-// /book — Quote-first booking wizard (spec §2)
+// /book — Quote-first booking, one question per screen (spec §2)
 // ============================================================================
-// Steps: 1 Contact & address → 2 Home → 3 Service → 4 Estimate →
-//        4b Date & time (skipped when quote_required) → 5 Questions → submit
+// Flow: service → frequency → home type → bedrooms → bathrooms → size →
+//       condition → add-ons → name → phone → email → address → estimate →
+//       date & time → pests → pets → extras → review/submit
 //
-// Key behaviors:
-//  - Step 1 saves a lead (status "lead") so abandoned requests can be followed up.
+// Design rules:
+//  - One question per screen, big tappable cards, no scrolling walls of fields.
+//  - Easy questions first so the progress bar moves quickly (each step has a
+//    weight; early tap-only questions carry the most).
+//  - The bar shows COMPLETION (how close you are to done), never "X left",
+//    and starts partly filled so step one never looks empty.
+//
+// Behaviour preserved from the previous wizard:
+//  - Contact step saves a lead (status "lead") for follow-up.
 //  - Outside-area addresses still save the lead flagged outside_area.
-//  - The date/time picker comes AFTER the estimate (job length depends on home).
-//  - Live reactive slot list: taken slots disappear without refresh (useQuery).
-//  - 10-minute temp hold on slot pick; "just taken" message on collision.
+//  - Date/time comes after the estimate (job length depends on the home).
+//  - Reactive slot list; 10-minute temp hold; "just taken" handling.
 //  - Honeypot + client & server validation; state preserved on errors.
 // ============================================================================
 
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router";
-import type { DateRange } from "react-day-picker";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
   ArrowLeft,
   ArrowRight,
+  Bath,
+  BedDouble,
+  Bug,
+  Building2,
   CalendarDays,
+  Camera,
+  Check,
   CheckCircle2,
   Clock,
+  DoorOpen,
+  Hammer,
+  HelpCircle,
   Home as HomeIcon,
+  KeyRound,
+  Layers,
   Loader2,
   Mail,
   MapPin,
   MessageSquare,
+  PawPrint,
   Phone,
+  Ruler,
   Send,
   ShieldCheck,
+  Sofa,
   Sparkles,
+  Truck,
+  User,
 } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -53,17 +76,13 @@ import {
   ESTIMATE_SIDE_NOTICE,
   TAX_NOTE,
 } from "@/lib/estimateWording";
-import { TIMEZONE } from "../config/availability";
-import { winnipegParts } from "../lib/tz";
+import { winnipegTimeKey, winnipegDateKey } from "../lib/tz";
 import { trackBookingConversion } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
 // Types & client-side validation (mirrored server-side in bookings.ts)
 // ---------------------------------------------------------------------------
-type SqftSource = "exact" | "estimate";
-
 interface WizardState {
-  // Step 1
   firstName: string;
   lastName: string;
   phone: string;
@@ -73,20 +92,17 @@ interface WizardState {
   city: string;
   postal: string;
   consent: boolean;
-  // Step 2
   sqft: string;
-  sqftBucket: string; // "" | value
+  sqftBucket: string;
   bedrooms: string;
   fullBaths: string;
   halfBaths: string;
   homeType: string;
-  // Step 3
   serviceType: "standard" | "deep" | "move_in_out" | "commercial" | "showhomes" | "post_construction" | "carpet" | "other";
   frequency: "one_time" | "weekly" | "biweekly" | "monthly";
   addons: string[];
   condition: string;
-  // Step 5
-  pests: string; // "" | "yes" | "no"
+  pests: string;
   pets: string;
   petsNote: string;
   entryMethod: string;
@@ -126,60 +142,101 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const POSTAL_RE = /^[A-Za-z]\d[A-Za-z]\s?\d[A-Za-z]\d$/;
 const PHONE_RE = /^[\d\s()+.-]{10,20}$/;
 
-function step1Errors(s: WizardState): Partial<Record<keyof WizardState, string>> {
-  const e: Partial<Record<keyof WizardState, string>> = {};
-  if (s.firstName.trim().length < 2) e.firstName = "Enter your first name.";
-  if (s.lastName.trim().length < 2) e.lastName = "Enter your last name.";
-  if (!PHONE_RE.test(s.phone.trim())) e.phone = "Enter a valid phone number.";
-  if (!EMAIL_RE.test(s.email.trim())) e.email = "Enter a valid email address.";
-  if (s.street.trim().length < 4) e.street = "Enter your street address.";
-  if (!POSTAL_RE.test(s.postal.trim())) e.postal = "Enter a postal code (e.g. R3P 0J4).";
-  if (!s.consent) e.consent = "Please agree so we can contact you about this request.";
-  return e;
-}
+// ---------------------------------------------------------------------------
+// Flow definition — order matters: easiest, most visual questions first.
+// The weight drives the progress bar, so early taps move it the most.
+// ---------------------------------------------------------------------------
+type StepId =
+  | "service"
+  | "frequency"
+  | "homeType"
+  | "bedrooms"
+  | "bathrooms"
+  | "size"
+  | "condition"
+  | "addons"
+  | "name"
+  | "phone"
+  | "email"
+  | "address"
+  | "estimate"
+  | "time"
+  | "pests"
+  | "pets"
+  | "extras"
+  | "review";
 
-function step2Errors(s: WizardState): Partial<Record<keyof WizardState, string>> {
-  const e: Partial<Record<keyof WizardState, string>> = {};
-  const sqftNum = parseInt(s.sqft, 10);
-  if (!s.sqft && !s.sqftBucket) e.sqft = "Enter square footage or pick a size.";
-  if (s.sqft && (!Number.isFinite(sqftNum) || sqftNum < 100 || sqftNum > 20000))
-    e.sqft = "Enter a number between 100 and 20,000.";
-  const beds = parseInt(s.bedrooms, 10);
-  if (!Number.isFinite(beds) || beds < 0 || beds > 10) e.bedrooms = "Enter 0–10.";
-  const full = parseInt(s.fullBaths, 10);
-  if (!Number.isFinite(full) || full < 0 || full > 8) e.fullBaths = "Enter 0–8.";
-  const half = parseInt(s.halfBaths, 10);
-  if (!Number.isFinite(half) || half < 0 || half > 6) e.halfBaths = "Enter 0–6.";
-  if (full === 0 && half === 0) e.fullBaths = "At least one bathroom is required.";
-  if (!s.homeType) e.homeType = "Pick your home type.";
-  return e;
-}
+const FLOW: { id: StepId; weight: number }[] = [
+  { id: "service", weight: 14 },
+  { id: "frequency", weight: 12 },
+  { id: "homeType", weight: 10 },
+  { id: "bedrooms", weight: 8 },
+  { id: "bathrooms", weight: 8 },
+  { id: "size", weight: 8 },
+  { id: "condition", weight: 8 },
+  { id: "addons", weight: 8 },
+  { id: "name", weight: 7 },
+  { id: "phone", weight: 7 },
+  { id: "email", weight: 7 },
+  { id: "address", weight: 8 },
+  { id: "estimate", weight: 3 },
+  { id: "time", weight: 3 },
+  { id: "pests", weight: 4 },
+  { id: "pets", weight: 3 },
+  { id: "extras", weight: 4 },
+  { id: "review", weight: 3 },
+];
 
-const STEP_LABELS = ["Contact & address", "Your home", "Service", "Estimate", "Time", "Details"];
+const SERVICE_CHOICES = [
+  { v: "standard", t: "Standard Cleaning", d: "A regular, top-to-bottom clean.", Icon: Sparkles },
+  { v: "deep", t: "Deep Cleaning", d: "The detailed reset, first time or seasonal.", Icon: Layers },
+  { v: "move_in_out", t: "Move In / Move Out", d: "Empty-home detailed clean.", Icon: Truck },
+  { v: "commercial", t: "Janitorial", d: "Offices, retail, studios, workspaces.", Icon: Building2 },
+  { v: "showhomes", t: "Showhome", d: "Presentation-ready between viewings.", Icon: Camera },
+  { v: "post_construction", t: "Post-Construction", d: "Fine dust and debris after a reno.", Icon: Hammer },
+  { v: "carpet", t: "Carpet Cleaning", d: "Refresh carpeted rooms and traffic lanes.", Icon: Sofa },
+  { v: "other", t: "Something else", d: "Tell us in the last step.", Icon: HelpCircle },
+] as const;
+
+const HOME_TYPE_ICONS: Record<string, typeof HomeIcon> = {
+  bungalow: HomeIcon,
+  two_storey: Building2,
+  townhouse: DoorOpen,
+  apartment: Building2,
+  condo: Building2,
+  other: HelpCircle,
+};
+
+const ENTRY_CHOICES = [
+  { v: "home", l: "I'll be home", Icon: User },
+  { v: "key", l: "Key", Icon: KeyRound },
+  { v: "lockbox", l: "Lockbox", Icon: ShieldCheck },
+  { v: "other", l: "Other", Icon: HelpCircle },
+] as const;
 
 // ---------------------------------------------------------------------------
 // Page
 // ---------------------------------------------------------------------------
 export default function Book() {
   const navigate = useNavigate();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const [w, setW] = useState<WizardState>(initialWizard);
-  const [errors, setErrors] = useState<Partial<Record<keyof WizardState, string>>>({});
+  const [error, setError] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [leadId, setLeadId] = useState<Id<"bookings"> | null>(null);
-  const [leadSaved, setLeadSaved] = useState(false);
   const [outsideArea, setOutsideArea] = useState(false);
   const [heldSlot, setHeldSlot] = useState<{ startUtc: number; timeKey: string; dateKey: string } | null>(null);
   const [slotJustTaken, setSlotJustTaken] = useState(false);
   const [holdFailReason, setHoldFailReason] = useState<string | null>(null);
-  const [honeypot, setHoneypot] = useState(""); // hidden field
+  const [honeypot, setHoneypot] = useState("");
+  const [pickedDate, setPickedDate] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date | undefined>(undefined);
 
   const set = <K extends keyof WizardState>(k: K, v: WizardState[K]) =>
     setW((prev) => ({ ...prev, [k]: v }));
 
-  // Resolved sqft: exact input wins; otherwise bucket midpoint.
+  // Resolved sqft: exact input wins; otherwise bucket value.
   const resolvedSqft = useMemo(() => {
     const exact = parseInt(w.sqft, 10);
     if (Number.isFinite(exact) && exact > 0) return exact;
@@ -192,7 +249,7 @@ export default function Book() {
 
   // Server-authoritative estimate (reactive).
   const estimateResult = useQuery(api.bookings.quoteFor, {
-    sqft: resolvedSqft || 1, // placeholder when unknown; step gate prevents submit
+    sqft: resolvedSqft || 1,
     bedrooms: parseInt(w.bedrooms, 10) || 0,
     fullBaths: parseInt(w.fullBaths, 10) || 0,
     halfBaths: parseInt(w.halfBaths, 10) || 0,
@@ -207,15 +264,25 @@ export default function Book() {
     addonCount,
   });
 
-  // Reactive availability.
+  // A custom-quote home skips the time step entirely.
+  const flow = useMemo(
+    () => FLOW.filter((s) => !(s.id === "time" && estimateResult === null)),
+    [estimateResult],
+  );
+
+  const current = flow[Math.min(step, flow.length - 1)];
+  const stepId = current.id;
+  const timeIdx = flow.findIndex((s) => s.id === "time");
+  const timeReached = timeIdx >= 0 && step >= timeIdx;
+
+  // Reactive availability — only asked for once the time step is in play.
   const bookableDates = useQuery(
     api.bookings.availableDates,
-    step >= 5 && durationMinutes != null ? { durationMinutes } : "skip",
+    timeReached && durationMinutes != null ? { durationMinutes } : "skip",
   );
-  const [pickedDate, setPickedDate] = useState<string | null>(null);
   const daySlots = useQuery(
     api.bookings.availableSlots,
-    step >= 5 && pickedDate && durationMinutes != null
+    timeReached && pickedDate && durationMinutes != null
       ? { dateKey: pickedDate, durationMinutes }
       : "skip",
   );
@@ -233,10 +300,47 @@ export default function Book() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function next1() {
-    const e = step1Errors(w);
-    setErrors(e);
-    if (Object.keys(e).length) return;
+  // ---- Progress: completion, never "remaining", never empty at the start ----
+  const totalWeight = flow.reduce((sum, s) => sum + s.weight, 0);
+  const doneWeight = flow.slice(0, step).reduce((sum, s) => sum + s.weight, 0);
+  const isLast = step >= flow.length - 1;
+  const rawPct = isLast
+    ? 100
+    : ((doneWeight + current.weight * 0.4) / totalWeight) * 100;
+  const pct = Math.min(100, Math.max(5, Math.round(rawPct)));
+
+  // -------------------------------------------------------------------------
+  // Navigation
+  // -------------------------------------------------------------------------
+  const goTo = (id: StepId) => {
+    const i = flow.findIndex((s) => s.id === id);
+    if (i >= 0) {
+      setStep(i);
+      setError(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const back = () => {
+    if (stepId === "time" && leadId && heldSlot) {
+      void releaseHold({ bookingId: leadId });
+      setHeldSlot(null);
+    }
+    if (step > 0) {
+      setStep((s) => s - 1);
+      setError(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const advance = () => {
+    setStep((s) => Math.min(s + 1, flow.length - 1));
+    setError(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  async function saveContactLead(): Promise<boolean> {
+    if (leadId) return true;
     setSubmitting(true);
     setServerError(null);
     try {
@@ -253,33 +357,81 @@ export default function Book() {
         source: "website",
       });
       setLeadId(res.bookingId);
-      setLeadSaved(true);
       const isWpg =
         w.city.trim().toLowerCase() === "winnipeg" &&
         /^R[23]/i.test(w.postal.replace(/\s+/g, ""));
       setOutsideArea(!isWpg);
-      setStep(2);
+      return true;
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setServerError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      );
+      return false;
     } finally {
       setSubmitting(false);
     }
   }
 
-  function next2() {
-    const e = step2Errors(w);
-    setErrors(e);
-    if (Object.keys(e).length) return;
-    setStep(3);
-  }
+  async function next() {
+    setError(null);
 
-  function next3() {
-    if (!w.condition) {
-      setErrors({ condition: "Pick the option that fits best." });
-      return;
+    switch (stepId) {
+      case "homeType":
+        if (!w.homeType) return setError("Pick the option that fits best.");
+        return advance();
+      case "size":
+        if (!w.sqft && !w.sqftBucket)
+          return setError("Enter your square footage or tap the closest size.");
+        if (w.sqft) {
+          const n = parseInt(w.sqft, 10);
+          if (!Number.isFinite(n) || n < 100 || n > 20000)
+            return setError("Enter a number between 100 and 20,000.");
+        }
+        return advance();
+      case "bathrooms":
+        if ((parseInt(w.fullBaths, 10) || 0) + (parseInt(w.halfBaths, 10) || 0) === 0)
+          return setError("At least one bathroom is required.");
+        return advance();
+      case "condition":
+        if (!w.condition) return setError("Pick the option that fits best.");
+        return advance();
+      case "name":
+        if (w.firstName.trim().length < 2) return setError("Enter your first name.");
+        if (w.lastName.trim().length < 2) return setError("Enter your last name.");
+        return advance();
+      case "phone":
+        if (!PHONE_RE.test(w.phone.trim()))
+          return setError("Enter a valid phone number.");
+        return advance();
+      case "email":
+        if (!EMAIL_RE.test(w.email.trim()))
+          return setError("Enter a valid email address.");
+        return advance();
+      case "address": {
+        if (w.street.trim().length < 4) return setError("Enter your street address.");
+        if (!POSTAL_RE.test(w.postal.trim()))
+          return setError("Enter a postal code (e.g. R3P 0J4).");
+        if (!w.consent)
+          return setError("Please agree so we can contact you about this request.");
+        const ok = await saveContactLead();
+        if (ok) advance();
+        return;
+      }
+      case "time":
+        if (estimateResult !== null && !heldSlot)
+          return setError("Pick a date and time to continue.");
+        return advance();
+      case "pests":
+        if (!w.pests) return setError("Please answer this question.");
+        return advance();
+      case "extras":
+        if (!w.entryMethod) return setError("Pick how the team will get in.");
+        return advance();
+      case "review":
+        return finalSubmit();
+      default:
+        return advance();
     }
-    setErrors({});
-    setStep(4);
   }
 
   async function pickSlot(startUtc: number) {
@@ -289,7 +441,6 @@ export default function Book() {
     try {
       const res = await holdSlot({ bookingId: leadId, startUtc, durationMinutes });
       if (res.ok) {
-        const { winnipegDateKey, winnipegTimeKey } = await import("../lib/tz");
         setHeldSlot({
           startUtc,
           timeKey: winnipegTimeKey(startUtc),
@@ -310,27 +461,17 @@ export default function Book() {
 
   async function finalSubmit() {
     if (!leadId) return;
-    const needsSlot = !estimateResult; // quote_required flow skips 4b
-    if (!needsSlot && !heldSlot) {
+    const needsSlot = estimateResult !== null;
+    if (needsSlot && !heldSlot) {
       setServerError("Please pick a date and time first.");
+      goTo("time");
       return;
     }
-    if (!w.pests) {
-      setErrors({ pests: "Please answer this question." });
-      return;
-    }
-    if (!w.entryMethod) {
-      setErrors({ entryMethod: "Please pick an entry option." });
-      return;
-    }
-    setErrors({});
     setSubmitting(true);
     setServerError(null);
     try {
       const res = await submitBooking({
         bookingId: leadId,
-        // Home + service details — saved with the booking so pricing and the
-        // owner's notifications use real data.
         sqft: resolvedSqft,
         sqftSource: w.sqft ? "exact" : "estimate",
         bedrooms: parseInt(w.bedrooms, 10) || 0,
@@ -353,7 +494,7 @@ export default function Book() {
         if (res.reason === "slot_taken") {
           setSlotJustTaken(true);
           setHeldSlot(null);
-          setStep(5);
+          goTo("time");
           setServerError(
             "That time was just taken, please choose another. Everything else you entered is saved.",
           );
@@ -371,7 +512,9 @@ export default function Book() {
         }&est=${estimateResult?.firstVisit ?? ""}${estimateResult ? "" : "&qr=1"}`,
       );
     } catch (err) {
-      setServerError(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setServerError(
+        err instanceof Error ? err.message : "Something went wrong. Please try again.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -382,76 +525,52 @@ export default function Book() {
   // Calendar window + bookable-day set for the month grid.
   const minBookableDay = useMemo(() => {
     const d = new Date();
-    d.setDate(d.getDate() + 2); // minLeadDays placeholder lives in availability config
+    d.setDate(d.getDate() + 2);
     d.setHours(0, 0, 0, 0);
     return d;
   }, []);
   const maxBookableDay = useMemo(() => {
     const d = new Date();
-    d.setDate(d.getDate() + 60); // maxAdvanceDays
+    d.setDate(d.getDate() + 60);
     d.setHours(23, 59, 59, 999);
     return d;
   }, []);
-  const availableDays = useMemo(() => {
-    return (bookableDates ?? []).map((d) => isoToDate(d.dateKey));
-  }, [bookableDates]);
-  const firstBookableMonth = useMemo(() => {
-    const first = availableDays[0];
-    return first ?? minBookableDay;
-  }, [availableDays, minBookableDay]);
+  const availableDays = useMemo(
+    () => (bookableDates ?? []).map((d) => isoToDate(d.dateKey)),
+    [bookableDates],
+  );
+  const firstBookableMonth = availableDays[0] ?? minBookableDay;
 
   return (
     <div className="bg-white">
-      {/* Header */}
       <section className="border-b border-slate-200 bg-brand-sky-tint">
-        <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6 lg:py-16">
+        <div className="mx-auto max-w-3xl px-4 pb-8 pt-10 sm:px-6 sm:pt-12">
           <p className="text-sm font-semibold uppercase tracking-wide text-brand-deep">
             Book a cleaning
           </p>
           <h1 className="mt-2 text-3xl font-bold text-brand-ink sm:text-4xl">
-            Get your estimated quote in about 3 minutes.
+            A few quick taps, then your price.
           </h1>
-          <p className="mt-3 text-brand-slate">
-            You'll see your estimated price before you pick a time — and nothing is
-            confirmed until ScrubFair confirms it with you. Winnipeg homes and
-            businesses only.
+          <p className="mt-2 text-brand-slate">
+            One question at a time. You'll see your estimated price before you pick a
+            time. Winnipeg homes and businesses only.
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:py-14">
-        {/* Progress */}
-        <ol className="mb-10 flex flex-wrap items-center gap-2 text-xs" aria-label="Progress">
-          {STEP_LABELS.map((label, i) => {
-            const n = i + 1;
-            const active = n === step;
-            const done = n < step;
-            return (
-              <li
-                key={label}
-                className={
-                  "flex items-center gap-1.5 rounded-full px-3 py-1 " +
-                  (active
-                    ? "bg-brand-deep text-white"
-                    : done
-                      ? "bg-brand-sky-soft text-brand-deep"
-                      : "bg-slate-100 text-slate-500")
-                }
-                aria-current={active ? "step" : undefined}
-              >
-                {done ? <CheckCircle2 className="size-3.5" aria-hidden /> : <span>{n}</span>}
-                <span className="font-medium">{label}</span>
-              </li>
-            );
-          })}
-        </ol>
+      <section className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
+        <ProgressHeader
+          pct={pct}
+          question={Math.min(step + 1, flow.length)}
+          total={flow.length}
+        />
 
         {outsideArea && (
-          <div className="mb-8 rounded-xl border border-amber-300 bg-amber-50 p-5 text-sm text-amber-900">
-            <p className="font-semibold">We currently serve Winnipeg only. Call us to check your area.</p>
+          <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
+            <p className="font-semibold">We currently serve Winnipeg only.</p>
             <p className="mt-1">
-              Your address looks outside our service area, but we've saved your request — or
-              call{" "}
+              Your address looks outside our service area, but we've saved your request —
+              or call{" "}
               <a href={`tel:${BRAND.phoneTel}`} className="font-semibold underline">
                 {BRAND.phone}
               </a>{" "}
@@ -460,358 +579,443 @@ export default function Book() {
           </div>
         )}
 
-        {/* ------------------------------------------------ STEP 1 */}
-        {step === 1 && (
-          <FormSection title="Who are we cleaning for?" icon={MapPin}>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="First name" required error={errors.firstName}>
-                <Input value={w.firstName} onChange={(e) => set("firstName", e.target.value)} autoComplete="given-name" className="h-12" />
-              </Field>
-              <Field label="Last name" required error={errors.lastName}>
-                <Input value={w.lastName} onChange={(e) => set("lastName", e.target.value)} autoComplete="family-name" className="h-12" />
-              </Field>
-            </div>
-            <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Phone" required error={errors.phone}>
-                <Input type="tel" value={w.phone} onChange={(e) => set("phone", e.target.value)} placeholder="204-555-0123" autoComplete="tel" className="h-12" />
-              </Field>
-              <Field label="Email" required error={errors.email}>
-                <Input type="email" value={w.email} onChange={(e) => set("email", e.target.value)} placeholder="you@example.com" autoComplete="email" className="h-12" />
-              </Field>
-            </div>
-            <Field label="Street address" required error={errors.street}>
-              <Input value={w.street} onChange={(e) => set("street", e.target.value)} autoComplete="address-line1" className="h-12" />
-            </Field>
-            <div className="grid gap-5 sm:grid-cols-3">
-              <Field label="Unit / apartment">
-                <Input value={w.unit} onChange={(e) => set("unit", e.target.value)} autoComplete="address-line2" className="h-12" />
-              </Field>
-              <Field label="City" required>
-                <Input value={w.city} onChange={(e) => set("city", e.target.value)} autoComplete="address-level2" className="h-12" />
-              </Field>
-              <Field label="Postal code" required error={errors.postal}>
-                <Input value={w.postal} onChange={(e) => set("postal", e.target.value)} placeholder="R3P 0J4" autoComplete="postal-code" className="h-12" />
-              </Field>
-            </div>
-            <div>
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 text-sm hover:border-brand-deep has-[[data-state=checked]]:border-brand-deep">
-                <Checkbox
-                  checked={w.consent}
-                  onCheckedChange={(v) => set("consent", v === true)}
-                  className="mt-0.5"
-                  aria-describedby="consent-desc"
-                />
-                <span id="consent-desc" className="text-brand-slate">
-                  I agree ScrubFair may contact me about this request. See our{" "}
-                  <Link to="/privacy" className="font-semibold text-brand-deep underline underline-offset-2">
-                    Privacy Policy
-                  </Link>
-                  .
-                </span>
-              </label>
-              {errors.consent && <p className="mt-1 text-sm text-red-600">{errors.consent}</p>}
-            </div>
-            <StepNav onNext={next1} nextLabel="Continue to home details" busy={busy} />
-            <p className="text-xs text-slate-500">
-              Step 1 is saved as a request-in-progress, so we can follow up if anything interrupts you.
-            </p>
-          </FormSection>
-        )}
-
-        {/* ------------------------------------------------ STEP 2 */}
-        {step === 2 && (
-          <FormSection title="Tell us about your home" icon={HomeIcon}>
-            <Field label="Square footage — excluding the basement" required error={errors.sqft} helper="Measure only the finished floors you want cleaned (main + upper floors). Don't count the basement.">
-              <Input
-                type="number"
-                inputMode="numeric"
-                min={100}
-                max={20000}
-                value={w.sqft}
-                onChange={(e) => set("sqft", e.target.value)}
-                placeholder="e.g. 1200"
-                className="h-12"
-              />
-            </Field>
-            <div>
-              <p className="text-sm font-semibold text-brand-ink">
-                Not sure? Pick the closest size. <span className="text-brand-deep">*</span>
-              </p>
-              <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {SQFT_BUCKETS.map((b) => (
-                  <button
-                    key={b.value}
-                    type="button"
-                    onClick={() => {
-                      set("sqftBucket", String(b.value));
-                      set("sqft", "");
-                      setErrors({});
-                    }}
-                    className={
-                      "rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors " +
-                      (w.sqftBucket === String(b.value)
-                        ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
-                        : "border-slate-200 text-brand-slate hover:border-brand-deep")
-                    }
-                  >
-                    {b.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="grid gap-5 sm:grid-cols-3">
-              <Field label="Bedrooms" required error={errors.bedrooms} helper="Include basement bedrooms to be cleaned.">
-                <Input type="number" inputMode="numeric" min={0} max={10} value={w.bedrooms} onChange={(e) => set("bedrooms", e.target.value)} className="h-12" />
-              </Field>
-              <Field label="Full bathrooms" required error={errors.fullBaths} helper="With a shower or tub.">
-                <Input type="number" inputMode="numeric" min={0} max={8} value={w.fullBaths} onChange={(e) => set("fullBaths", e.target.value)} className="h-12" />
-              </Field>
-              <Field label="Half bathrooms" required error={errors.halfBaths} helper="Toilet + sink only.">
-                <Input type="number" inputMode="numeric" min={0} max={6} value={w.halfBaths} onChange={(e) => set("halfBaths", e.target.value)} className="h-12" />
-              </Field>
-            </div>
-            <Field label="Home type" required error={errors.homeType}>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {HOME_TYPE_OPTIONS.map((o) => (
-                  <button
-                    key={o.value}
-                    type="button"
-                    onClick={() => set("homeType", o.value)}
-                    className={
-                      "rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors " +
-                      (w.homeType === o.value
-                        ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
-                        : "border-slate-200 text-brand-slate hover:border-brand-deep")
-                    }
-                  >
-                    {o.label}
-                  </button>
-                ))}
-              </div>
-            </Field>
-            <StepNav
-              onBack={() => setStep(1)}
-              onNext={next2}
-              nextLabel="Continue to service"
-              busy={busy}
-            />
-          </FormSection>
-        )}
-
-        {/* ------------------------------------------------ STEP 3 */}
-        {step === 3 && (
-          <FormSection title="What do you need?" icon={Sparkles}>
-            <Field label="Service" required>
-              <div className="grid gap-2 sm:grid-cols-2">
-                {[
-                  { v: "standard", t: "Standard Cleaning", d: "A regular, top-to-bottom clean." },
-                  { v: "deep", t: "Deep Cleaning", d: "The detailed first-time reset. One-time price." },
-                  { v: "move_in_out", t: "Move In / Move Out", d: "Empty-home detailed clean. One-time price." },
-                  { v: "commercial", t: "Janitorial Services", d: "Offices, retail, studios, and workspaces." },
-                  { v: "showhomes", t: "Showhome Cleaning", d: "Presentation-ready cleaning between viewings." },
-                  { v: "post_construction", t: "Post-Construction Cleaning", d: "Fine dust and debris cleanup after renovation." },
-                  { v: "carpet", t: "Carpet Cleaning", d: "Refresh carpeted rooms and high-traffic areas." },
-                  { v: "other", t: "Something else", d: "Describe what you need in special requests below." },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    type="button"
-                    onClick={() => set("serviceType", o.v as WizardState["serviceType"])}
-                    className={
-                      "rounded-xl border p-4 text-left transition-colors " +
-                      (w.serviceType === o.v
-                        ? "border-brand-deep bg-brand-sky-soft"
-                        : "border-slate-200 hover:border-brand-deep")
-                    }
-                  >
-                    <span className="block text-sm font-semibold text-brand-ink">{o.t}</span>
-                    <span className="mt-0.5 block text-xs text-brand-slate">{o.d}</span>
-                  </button>
-                ))}
-              </div>
-            </Field>
-            <Field
-              label="How often?"
-              required
-              helper={
-                w.serviceType === "deep" || w.serviceType === "move_in_out"
-                  ? "Deep cleans and move-in/move-out are one-time services."
-                  : undefined
-              }
-            >
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {FREQUENCY_OPTIONS.map((o) => {
-                  const disabled =
-                    (w.serviceType === "deep" || w.serviceType === "move_in_out") &&
-                    o.value !== "one_time";
-                  return (
-                    <button
-                      key={o.value}
-                      type="button"
-                      disabled={disabled}
-                      onClick={() => set("frequency", o.value as WizardState["frequency"])}
-                      className={
-                        "rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors " +
-                        (w.frequency === o.value
-                          ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
-                          : "border-slate-200 text-brand-slate hover:border-brand-deep") +
-                        (disabled ? " cursor-not-allowed opacity-40" : "")
-                      }
-                    >
-                      {o.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </Field>
-            <Field label="Add-ons (first visit)" helper="Flat price each, applied to your first visit. For add-ons on every recurring visit, we will confirm by phone.">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {ADDON_OPTIONS.map((a) => (
-                  <label
-                    key={a.value}
-                    className="flex cursor-pointer items-center gap-3 rounded-lg border border-slate-200 p-3 text-sm hover:border-brand-deep"
-                  >
-                    <Checkbox
-                      checked={w.addons.includes(a.value)}
-                      onCheckedChange={(v) =>
-                        set(
-                          "addons",
-                          v
-                            ? [...w.addons, a.value]
-                            : w.addons.filter((x) => x !== a.value),
-                        )
-                      }
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={stepId}
+            initial={{ opacity: 0, y: 14 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9"
+          >
+            {stepId === "service" && (
+              <Question
+                title="What kind of clean do you need?"
+                hint="Tap one — you can change it later."
+              >
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {SERVICE_CHOICES.map(({ v, t, d, Icon }) => (
+                    <ChoiceCard
+                      key={v}
+                      selected={w.serviceType === v}
+                      onClick={() => {
+                        set("serviceType", v as WizardState["serviceType"]);
+                        if (v === "deep" || v === "move_in_out") set("frequency", "one_time");
+                      }}
+                      icon={Icon}
+                      title={t}
+                      description={d}
                     />
-                    <span className="text-brand-slate">{a.label}</span>
-                  </label>
-                ))}
-              </div>
-            </Field>
-            <Field label="How would you describe the home's current condition?" required error={errors.condition} helper="Heavier conditions don't change your estimate — we review and confirm before booking.">
-              <div className="grid gap-2">
-                {CONDITION_OPTIONS.map((o) => (
-                  <label
-                    key={o.value}
-                    className={
-                      "flex cursor-pointer items-start gap-3 rounded-xl border p-4 text-sm transition-colors " +
-                      (w.condition === o.value
-                        ? "border-brand-deep bg-brand-sky-soft"
-                        : "border-slate-200 hover:border-brand-deep")
-                    }
-                  >
-                    <input
-                      type="radio"
-                      name="condition"
-                      value={o.value}
-                      checked={w.condition === o.value}
-                      onChange={() => set("condition", o.value)}
-                      className="mt-1 size-4 accent-brand-deep"
-                    />
-                    <span>
-                      <span className="block font-semibold text-brand-ink">{o.label}</span>
-                      <span className="mt-0.5 block text-xs text-brand-slate">{o.description}</span>
-                    </span>
-                  </label>
-                ))}
-              </div>
-            </Field>
-            <StepNav onBack={() => setStep(2)} onNext={next3} nextLabel="See my estimate" busy={busy} />
-          </FormSection>
-        )}
-
-        {/* ------------------------------------------------ STEP 4 */}
-        {step === 4 && (
-          <FormSection title="Your Estimated Quote" icon={CheckCircle2}>
-            {estimateResult === undefined ? (
-              <div className="flex items-center gap-3 py-10 text-brand-slate">
-                <Loader2 className="size-5 animate-spin" aria-hidden /> Calculating…
-              </div>
-            ) : estimateResult === null ? (
-              <div className="rounded-xl border border-slate-200 bg-brand-sky-tint p-6">
-                <p className="text-lg font-semibold text-brand-ink">Call or message us for a quote</p>
-                <p className="mt-2 text-sm text-brand-slate">
-                  Your home's details fall outside our online estimator (very small or very
-                  large homes, or special layouts). We'll gladly price it personally — you can
-                  still submit this request and we'll review your home's details.
-                </p>
-                <div className="mt-5 flex flex-wrap gap-3">
-                  <Button asChild className="h-12 bg-brand-deep px-6 text-white shadow-brand hover:bg-brand-deep-hover">
-                    <a href={`tel:${BRAND.phoneTel}`}>
-                      <Phone className="mr-2 size-4" aria-hidden /> Call {BRAND.phone}
-                    </a>
-                  </Button>
+                  ))}
                 </div>
-              </div>
-            ) : (
-              <div className="rounded-2xl border border-brand-sky bg-brand-sky-tint p-6 sm:p-8">
-                <div className="flex flex-wrap items-end justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-semibold uppercase tracking-wide text-brand-deep">
-                      Estimated first visit
-                    </p>
-                    <p className="mt-1 text-4xl font-bold text-brand-ink">{cad(estimateResult.firstVisit)}</p>
-                  </div>
-                  {estimateResult.perVisit != null && (
-                    <div className="text-right">
-                      <p className="text-sm font-semibold uppercase tracking-wide text-brand-deep">
-                        Estimated per visit after
-                      </p>
-                      <p className="mt-1 text-2xl font-bold text-brand-ink">{cad(estimateResult.perVisit)}</p>
-                    </div>
-                  )}
-                </div>
-                <p className="mt-5 border-t border-brand-sky/60 pt-4 text-sm font-medium text-brand-ink">
-                  {ESTIMATE_SIDE_NOTICE}
-                </p>
-                <p className="mt-2 text-xs text-brand-slate">{ESTIMATE_DIFFERENCE_NOTE}</p>
-                <p className="mt-1 text-xs text-brand-slate">{TAX_NOTE}</p>
-              </div>
+              </Question>
             )}
 
-            <div className="rounded-xl border border-slate-200 p-4 text-sm text-brand-slate">
-              <p className="font-semibold text-brand-ink">Included in this estimate</p>
-              <ul className="mt-2 space-y-1 text-xs">
-                <li>· {deepClean ? "Deep-clean detail" : "Standard clean"} of your home</li>
-                <li>· {resolvedSqft || "—"} sq ft (excluding basement), {w.bedrooms || "—"} bedroom(s), {w.fullBaths || "—"} full / {w.halfBaths || "—"} half bath</li>
-                {addonCount > 0 && <li>· {addonCount} add-on(s) — first visit</li>}
-                <li>· Team arrival window and confirmation after review</li>
-              </ul>
-            </div>
+            {stepId === "frequency" && (
+              <Question
+                title="How often should we come?"
+                hint={
+                  w.serviceType === "deep" || w.serviceType === "move_in_out"
+                    ? "Deep cleans and move-in/move-out cleans are one-time services."
+                    : "Recurring visits are the calmest way to keep a home clean."
+                }
+              >
+                <div className="grid grid-cols-2 gap-2.5">
+                  {FREQUENCY_OPTIONS.map((o) => {
+                    const locked =
+                      (w.serviceType === "deep" || w.serviceType === "move_in_out") &&
+                      o.value !== "one_time";
+                    return (
+                      <ChoiceCard
+                        key={o.value}
+                        selected={w.frequency === o.value}
+                        disabled={locked}
+                        onClick={() => set("frequency", o.value as WizardState["frequency"])}
+                        title={o.label}
+                      />
+                    );
+                  })}
+                </div>
+              </Question>
+            )}
 
-            <StepNav
-              onBack={() => setStep(3)}
-              onNext={() => setStep(5)}
-              nextLabel={estimateResult ? "Pick a date & time" : "Continue"}
-              busy={busy}
-            />
-          </FormSection>
-        )}
+            {stepId === "homeType" && (
+              <Question title="What kind of home is it?" hint="Helps us plan the right team.">
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3">
+                  {HOME_TYPE_OPTIONS.map((o) => (
+                    <ChoiceCard
+                      key={o.value}
+                      selected={w.homeType === o.value}
+                      onClick={() => set("homeType", o.value)}
+                      icon={HOME_TYPE_ICONS[o.value] ?? HelpCircle}
+                      title={o.label}
+                      centered
+                    />
+                  ))}
+                </div>
+              </Question>
+            )}
 
-        {/* ------------------------------------------------ STEP 4b (5) */}
-        {step === 5 && (
-          <FormSection title="Pick your date & time" icon={CalendarDays}>
-            {estimateResult === null ? (
-              <div className="rounded-xl border border-slate-200 bg-brand-sky-tint p-5 text-sm text-brand-slate">
-                Because this request needs a custom quote, we'll schedule your visit together
-                after we review your home's details. Click Continue to finish your request.
-              </div>
-            ) : (
-              <>
-                <p className="text-sm text-brand-slate">
-                  Available start times for a first-visit clean of about{" "}
-                  <b>{durationMinutes ?? "…"} minutes</b>. Times shown in Winnipeg time.
-                </p>
-                {slotJustTaken && (
-                  <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm font-medium text-amber-900" role="alert">
-                    {holdFailReason === "outside_hours"
-                      ? "That start time no longer fits your cleaning length in our working day — please choose an earlier start."
-                      : holdFailReason === "before_lead_time" || holdFailReason === "past_max_advance"
-                        ? "That date is outside our booking window — please pick another day."
-                        : "That time was just taken, please choose another. Everything else you entered is saved."}
+            {stepId === "bedrooms" && (
+              <Question title="How many bedrooms?" hint="Include basement bedrooms if we're cleaning them.">
+                <Counter
+                  icon={BedDouble}
+                  value={w.bedrooms}
+                  max={10}
+                  onChange={(v) => set("bedrooms", String(v))}
+                  quick={[1, 2, 3, 4]}
+                />
+              </Question>
+            )}
+
+            {stepId === "bathrooms" && (
+              <Question
+                title="And bathrooms?"
+                hint="A full bath has a tub or shower. A half bath is toilet and sink only."
+              >
+                <div className="space-y-3">
+                  <Counter
+                    icon={Bath}
+                    label="Full bathrooms"
+                    value={w.fullBaths}
+                    max={8}
+                    onChange={(v) => set("fullBaths", String(v))}
+                  />
+                  <Counter
+                    icon={Bath}
+                    label="Half bathrooms"
+                    value={w.halfBaths}
+                    max={6}
+                    onChange={(v) => set("halfBaths", String(v))}
+                  />
+                </div>
+              </Question>
+            )}
+
+            {stepId === "size" && (
+              <Question
+                title="Roughly how big is the space?"
+                hint="Count only the finished floors we're cleaning — not the basement."
+              >
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  {SQFT_BUCKETS.map((b) => (
+                    <ChoiceCard
+                      key={b.value}
+                      selected={w.sqftBucket === String(b.value) && !w.sqft}
+                      onClick={() => {
+                        set("sqftBucket", String(b.value));
+                        set("sqft", "");
+                        setError(null);
+                      }}
+                      title={b.label}
+                      centered
+                    />
+                  ))}
+                </div>
+                <div className="mt-4">
+                  <label className="text-sm font-semibold text-brand-ink" htmlFor="sqft">
+                    Or type the exact square footage
+                  </label>
+                  <div className="relative mt-2">
+                    <Ruler
+                      className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400"
+                      aria-hidden
+                    />
+                    <Input
+                      id="sqft"
+                      type="number"
+                      inputMode="numeric"
+                      min={100}
+                      max={20000}
+                      value={w.sqft}
+                      onChange={(e) => {
+                        set("sqft", e.target.value);
+                        if (e.target.value) set("sqftBucket", "");
+                      }}
+                      placeholder="e.g. 1200"
+                      className="h-12 pl-9"
+                    />
+                  </div>
+                </div>
+              </Question>
+            )}
+
+            {stepId === "condition" && (
+              <Question
+                title="How is the place looking today?"
+                hint="Heavier conditions don't change your estimate — we review before booking."
+              >
+                <div className="grid gap-2.5">
+                  {CONDITION_OPTIONS.map((o) => (
+                    <ChoiceCard
+                      key={o.value}
+                      selected={w.condition === o.value}
+                      onClick={() => set("condition", o.value)}
+                      title={o.label}
+                      description={o.description}
+                    />
+                  ))}
+                </div>
+              </Question>
+            )}
+
+            {stepId === "addons" && (
+              <Question
+                title="Anything extra on the first visit?"
+                hint="Flat price each. Skip if you don't need any."
+              >
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {ADDON_OPTIONS.map((a) => {
+                    const on = w.addons.includes(a.value);
+                    return (
+                      <button
+                        key={a.value}
+                        type="button"
+                        onClick={() =>
+                          set(
+                            "addons",
+                            on ? w.addons.filter((x) => x !== a.value) : [...w.addons, a.value],
+                          )
+                        }
+                        className={
+                          "flex items-center justify-between gap-3 rounded-xl border p-4 text-left text-sm font-semibold transition-colors " +
+                          (on
+                            ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
+                            : "border-slate-200 text-brand-slate hover:border-brand-deep")
+                        }
+                        aria-pressed={on}
+                      >
+                        {a.label}
+                        <span
+                          className={
+                            "flex size-5 shrink-0 items-center justify-center rounded-full border " +
+                            (on
+                              ? "border-brand-deep bg-brand-deep text-white"
+                              : "border-slate-300")
+                          }
+                        >
+                          {on && <Check className="size-3" aria-hidden />}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </Question>
+            )}
+
+            {stepId === "name" && (
+              <Question title="Who are we cleaning for?" hint="So we know who to ask for on arrival.">
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    value={w.firstName}
+                    onChange={(e) => set("firstName", e.target.value)}
+                    autoComplete="given-name"
+                    placeholder="First name"
+                    aria-label="First name"
+                    className="h-12"
+                  />
+                  <Input
+                    value={w.lastName}
+                    onChange={(e) => set("lastName", e.target.value)}
+                    autoComplete="family-name"
+                    placeholder="Last name"
+                    aria-label="Last name"
+                    className="h-12"
+                  />
+                </div>
+              </Question>
+            )}
+
+            {stepId === "phone" && (
+              <Question
+                title="Best number to reach you?"
+                hint="We only call about this booking — no marketing calls."
+              >
+                <div className="relative">
+                  <Phone
+                    className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400"
+                    aria-hidden
+                  />
+                  <Input
+                    type="tel"
+                    value={w.phone}
+                    onChange={(e) => set("phone", e.target.value)}
+                    placeholder="204-555-0123"
+                    autoComplete="tel"
+                    aria-label="Phone number"
+                    className="h-14 pl-12 text-lg"
+                  />
+                </div>
+              </Question>
+            )}
+
+            {stepId === "email" && (
+              <Question
+                title="Where should we send your confirmation?"
+                hint="Your booking details and confirmation go here."
+              >
+                <div className="relative">
+                  <Mail
+                    className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400"
+                    aria-hidden
+                  />
+                  <Input
+                    type="email"
+                    value={w.email}
+                    onChange={(e) => set("email", e.target.value)}
+                    placeholder="you@example.com"
+                    autoComplete="email"
+                    aria-label="Email address"
+                    className="h-14 pl-12 text-lg"
+                  />
+                </div>
+              </Question>
+            )}
+
+            {stepId === "address" && (
+              <Question title="Where is the cleaning?" hint="Winnipeg addresses only.">
+                <div className="space-y-3">
+                  <div className="relative">
+                    <MapPin
+                      className="pointer-events-none absolute left-4 top-1/2 size-5 -translate-y-1/2 text-slate-400"
+                      aria-hidden
+                    />
+                    <Input
+                      value={w.street}
+                      onChange={(e) => set("street", e.target.value)}
+                      autoComplete="address-line1"
+                      placeholder="Street address"
+                      aria-label="Street address"
+                      className="h-12 pl-12"
+                    />
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <Input
+                      value={w.unit}
+                      onChange={(e) => set("unit", e.target.value)}
+                      autoComplete="address-line2"
+                      placeholder="Unit (optional)"
+                      aria-label="Unit"
+                      className="h-12"
+                    />
+                    <Input
+                      value={w.city}
+                      onChange={(e) => set("city", e.target.value)}
+                      autoComplete="address-level2"
+                      aria-label="City"
+                      className="h-12"
+                    />
+                    <Input
+                      value={w.postal}
+                      onChange={(e) => set("postal", e.target.value)}
+                      placeholder="R3P 0J4"
+                      autoComplete="postal-code"
+                      aria-label="Postal code"
+                      className="h-12"
+                    />
+                  </div>
+                  <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 text-sm hover:border-brand-deep has-[[data-state=checked]]:border-brand-deep">
+                    <Checkbox
+                      checked={w.consent}
+                      onCheckedChange={(v) => set("consent", v === true)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-brand-slate">
+                      I agree ScrubFair may contact me about this request. See our{" "}
+                      <Link
+                        to="/privacy"
+                        className="font-semibold text-brand-deep underline underline-offset-2"
+                      >
+                        Privacy Policy
+                      </Link>
+                      .
+                    </span>
+                  </label>
+                </div>
+              </Question>
+            )}
+
+            {stepId === "estimate" && (
+              <Question
+                title="Here's your estimated quote"
+                hint="Nothing is charged online, and this is an estimate — we confirm the final price with you."
+              >
+                {estimateResult === undefined ? (
+                  <div className="flex items-center gap-3 py-8 text-brand-slate">
+                    <Loader2 className="size-5 animate-spin" aria-hidden /> Calculating…
+                  </div>
+                ) : estimateResult === null ? (
+                  <div className="rounded-2xl border border-slate-200 bg-brand-sky-tint p-6">
+                    <p className="text-lg font-semibold text-brand-ink">
+                      This one needs a personal quote
+                    </p>
+                    <p className="mt-2 text-sm text-brand-slate">
+                      Your home's details fall outside our online estimator. Send the
+                      request anyway and we'll review it, or call and we'll price it with
+                      you.
+                    </p>
+                    <Button
+                      asChild
+                      className="mt-4 h-12 bg-brand-deep px-6 text-white shadow-brand hover:bg-brand-deep-hover"
+                    >
+                      <a href={`tel:${BRAND.phoneTel}`}>
+                        <Phone className="mr-2 size-4" aria-hidden /> Call {BRAND.phone}
+                      </a>
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-2xl border border-brand-sky bg-brand-sky-tint p-6 sm:p-8">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-brand-deep">
+                      Estimated first visit
+                    </p>
+                    <p className="mt-1 text-5xl font-extrabold text-brand-ink">
+                      {cad(estimateResult.firstVisit)}
+                    </p>
+                    {estimateResult.perVisit != null && (
+                      <p className="mt-2 text-sm font-semibold text-brand-deep">
+                        Then about {cad(estimateResult.perVisit)} per visit
+                      </p>
+                    )}
+                    <p className="mt-4 border-t border-brand-sky/60 pt-4 text-sm font-medium text-brand-ink">
+                      {ESTIMATE_SIDE_NOTICE}
+                    </p>
+                    <p className="mt-2 text-xs text-brand-slate">{ESTIMATE_DIFFERENCE_NOTE}</p>
+                    <p className="mt-1 text-xs text-brand-slate">{TAX_NOTE}</p>
                   </div>
                 )}
-                {/* Real month-grid calendar: unavailable days are disabled */}
-                <div className="mx-auto w-fit rounded-2xl border border-slate-200 bg-white p-4">
+                <div className="mt-4 rounded-xl border border-slate-200 p-4 text-sm text-brand-slate">
+                  <p className="font-semibold text-brand-ink">What's included</p>
+                  <ul className="mt-2 space-y-1 text-xs">
+                    <li>· {deepClean ? "Deep-clean detail" : "Standard clean"} of your home</li>
+                    <li>
+                      · {resolvedSqft || "—"} sq ft, {w.bedrooms || "0"} bedroom(s),{" "}
+                      {w.fullBaths || "0"} full / {w.halfBaths || "0"} half bath
+                    </li>
+                    {addonCount > 0 && <li>· {addonCount} add-on(s) on the first visit</li>}
+                  </ul>
+                </div>
+              </Question>
+            )}
+
+            {stepId === "time" && (
+              <Question
+                icon={CalendarDays}
+                title="Pick your date and time"
+                hint={`Available starts for roughly ${durationMinutes ?? "…"} minutes of cleaning. Times are Winnipeg time.`}
+              >
+                {slotJustTaken && (
+                  <div
+                    className="mb-4 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm font-medium text-amber-900"
+                    role="alert"
+                  >
+                    {holdFailReason === "outside_hours"
+                      ? "That start time no longer fits your cleaning length in our working day — pick an earlier start."
+                      : holdFailReason === "before_lead_time" || holdFailReason === "past_max_advance"
+                        ? "That date is outside our booking window — pick another day."
+                        : "That time was just taken, please choose another. Everything else is saved."}
+                  </div>
+                )}
+                <div className="mx-auto w-fit rounded-2xl border border-slate-200 bg-white p-3">
                   <Calendar
                     mode="single"
                     selected={pickedDate ? isoToDate(pickedDate) : undefined}
@@ -820,33 +1024,31 @@ export default function Book() {
                       setPickedDate(dateToIso(d));
                       setHeldSlot(null);
                       setSlotJustTaken(false);
+                      setError(null);
                     }}
                     numberOfMonths={1}
-                    defaultMonth={pickedDate ? isoToDate(pickedDate) : firstBookableMonth}
                     month={calendarMonth ?? (pickedDate ? isoToDate(pickedDate) : firstBookableMonth)}
                     onMonthChange={(m) => setCalendarMonth(m)}
                     disabled={[{ before: minBookableDay }, { after: maxBookableDay }]}
                     modifiers={{ available: availableDays }}
-                    modifiersClassNames={{
-                      available: "text-brand-ink",
-                    }}
+                    modifiersClassNames={{ available: "text-brand-ink" }}
                     classNames={{
-                      disabled: "text-slate-300 line-through opacity-50", // greyed-out unavailable days
+                      disabled: "text-slate-300 line-through opacity-50",
                       selected:
                         "bg-brand-deep !text-white rounded-lg hover:!bg-brand-deep-hover focus-visible:!ring-brand-deep",
                     }}
                   />
                   {bookableDates === undefined && (
                     <div className="flex items-center justify-center gap-2 py-4 text-sm text-brand-slate">
-                      <Loader2 className="size-4 animate-spin" aria-hidden /> Loading available days…
+                      <Loader2 className="size-4 animate-spin" aria-hidden /> Loading days…
                     </div>
                   )}
                 </div>
-                <p className="text-center text-xs text-slate-500">
-                  Crossed-out days are fully booked or closed. Pick an open day, then a start time below.
+                <p className="mt-2 text-center text-xs text-slate-500">
+                  Crossed-out days are full or closed. Pick a day, then a start time.
                 </p>
                 {pickedDate && (
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                     {(daySlots ?? []).map((s) => (
                       <button
                         key={s.startUtc}
@@ -872,172 +1074,195 @@ export default function Book() {
                   </div>
                 )}
                 {w.frequency !== "one_time" && (
-                  <p className="rounded-lg bg-brand-sky-tint p-3 text-xs text-brand-slate">
-                    You're picking your <b>first visit</b> only. We will confirm your recurring
+                  <p className="mt-4 rounded-lg bg-brand-sky-tint p-3 text-xs text-brand-slate">
+                    You're picking your <b>first visit</b> only. We'll confirm your recurring
                     day and time with you.
                   </p>
                 )}
-                <p className="text-xs text-slate-500">
-                  Your pick is a request — it becomes a booking once ScrubFair confirms it.
-                </p>
-              </>
+              </Question>
             )}
-            <StepNav
-              onBack={() => {
-                if (leadId && heldSlot) void releaseHold({ bookingId: leadId });
-                setHeldSlot(null);
-                setStep(4);
-              }}
-              onNext={() => setStep(6)}
-              nextLabel="Continue to details"
-              busy={busy}
-              nextDisabled={estimateResult !== null && !heldSlot}
-            />
-          </FormSection>
-        )}
 
-        {/* ------------------------------------------------ STEP 5 (6) */}
-        {step === 6 && (
-          <FormSection title="A few last questions" icon={ShieldCheck}>
-            <Field label="Any cockroach, bedbug or rodent activity in the last 12 months?" required error={errors.pests}>
-              <div className="flex gap-2">
-                {["no", "yes"].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => set("pests", v)}
-                    className={
-                      "flex-1 rounded-lg border px-4 py-3 text-sm font-semibold capitalize transition-colors " +
-                      (w.pests === v
-                        ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
-                        : "border-slate-200 text-brand-slate hover:border-brand-deep")
-                    }
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-            </Field>
-            <Field label="Pets we should know about?">
-              <div className="flex gap-2">
-                {["no", "yes"].map((v) => (
-                  <button
-                    key={v}
-                    type="button"
-                    onClick={() => set("pets", v)}
-                    className={
-                      "flex-1 rounded-lg border px-4 py-3 text-sm font-semibold capitalize transition-colors " +
-                      (w.pets === v
-                        ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
-                        : "border-slate-200 text-brand-slate hover:border-brand-deep")
-                    }
-                  >
-                    {v}
-                  </button>
-                ))}
-              </div>
-              {w.pets === "yes" && (
-                <Input
-                  value={w.petsNote}
-                  onChange={(e) => set("petsNote", e.target.value)}
-                  placeholder="e.g. one friendly cat; dog will be at daycare"
-                  className="mt-2 h-11"
-                />
-              )}
-            </Field>
-            <Field label="How will the team get in?" required error={errors.entryMethod} helper="We will ask for access details by phone after your booking is confirmed. Please don't enter door codes or alarm codes here.">
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {[
-                  { v: "home", l: "I'll be home" },
-                  { v: "key", l: "Key" },
-                  { v: "lockbox", l: "Lockbox" },
-                  { v: "other", l: "Other" },
-                ].map((o) => (
-                  <button
-                    key={o.v}
-                    type="button"
-                    onClick={() => set("entryMethod", o.v)}
-                    className={
-                      "rounded-lg border px-2 py-2.5 text-xs font-medium transition-colors " +
-                      (w.entryMethod === o.v
-                        ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
-                        : "border-slate-200 text-brand-slate hover:border-brand-deep")
-                    }
-                  >
-                    {o.l}
-                  </button>
-                ))}
-              </div>
-            </Field>
-            <Field label="Special requests">
-              <textarea
-                value={w.specialRequests}
-                onChange={(e) => set("specialRequests", e.target.value)}
-                rows={4}
-                maxLength={2000}
-                placeholder="Anything we should know? (Date and time were picked in the previous step.)"
-                className="w-full resize-y rounded-lg border border-input px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
-              />
-            </Field>
-            <p className="rounded-lg bg-brand-sky-tint p-4 text-sm text-brand-slate">
-              After you submit, your booking is <b>confirmed instantly</b> and a confirmation
-              email is sent to <b>{w.email || "your email"}</b>.
-            </p>
+            {stepId === "pests" && (
+              <Question
+                icon={Bug}
+                title="Any pest activity in the last 12 months?"
+                hint="Cockroaches, bedbugs, or rodents. We ask so the team can prepare properly."
+              >
+                <YesNo value={w.pests} onChange={(v) => set("pests", v)} />
+              </Question>
+            )}
 
-            {/* Honeypot — visible only to bots (hidden off-screen + not focusable) */}
-            <div
-              style={{
-                position: "absolute",
-                left: "-9999px",
-                width: "1px",
-                height: "1px",
-                overflow: "hidden",
-              }}
-              aria-hidden="true"
-            >
-              <label>
-                Comments
-                <input tabIndex={-1} autoComplete="off" value={honeypot} onChange={(e) => setHoneypot(e.target.value)} />
-              </label>
-            </div>
+            {stepId === "pets" && (
+              <Question
+                icon={PawPrint}
+                title="Any pets we should know about?"
+                hint="Optional, but it helps."
+              >
+                <YesNo value={w.pets} onChange={(v) => set("pets", v)} />
+                {w.pets === "yes" && (
+                  <Input
+                    value={w.petsNote}
+                    onChange={(e) => set("petsNote", e.target.value)}
+                    placeholder="e.g. one friendly cat; dog will be at daycare"
+                    aria-label="Pet details"
+                    className="mt-3 h-12"
+                  />
+                )}
+              </Question>
+            )}
+
+            {stepId === "extras" && (
+              <Question title="Anything we should know?" hint="Access, pets inside, or a spot to focus on.">
+                <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+                  {ENTRY_CHOICES.map(({ v, l, Icon }) => (
+                    <ChoiceCard
+                      key={v}
+                      selected={w.entryMethod === v}
+                      onClick={() => set("entryMethod", v)}
+                      icon={Icon}
+                      title={l}
+                      centered
+                    />
+                  ))}
+                </div>
+                <p className="mt-3 text-xs text-brand-slate">
+                  We'll ask for access details by phone after booking. Please don't enter
+                  door or alarm codes here.
+                </p>
+                <div className="mt-4">
+                  <label className="text-sm font-semibold text-brand-ink" htmlFor="requests">
+                    Special requests (optional)
+                  </label>
+                  <textarea
+                    id="requests"
+                    value={w.specialRequests}
+                    onChange={(e) => set("specialRequests", e.target.value)}
+                    rows={3}
+                    maxLength={2000}
+                    placeholder="Anything else we should know?"
+                    className="mt-2 w-full resize-y rounded-lg border border-input px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
+                  />
+                </div>
+              </Question>
+            )}
+
+            {stepId === "review" && (
+              <Question
+                icon={CheckCircle2}
+                title="Ready to send it?"
+                hint={`Your booking is confirmed instantly and a confirmation email goes to ${
+                  w.email || "your email"
+                }.`}
+              >
+                <div className="rounded-2xl border border-slate-200 bg-brand-sky-tint p-5">
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-sm font-semibold text-brand-ink">
+                        {SERVICE_CHOICES.find((s) => s.v === w.serviceType)?.t ?? "Cleaning"}
+                      </p>
+                      <p className="mt-1 text-xs text-brand-slate">
+                        {w.homeType ? `${w.homeType.replace(/_/g, " ")} · ` : ""}
+                        {w.bedrooms || 0} bed · {w.fullBaths || 0} full / {w.halfBaths || 0} half
+                        bath · {resolvedSqft || "—"} sq ft
+                      </p>
+                      <p className="mt-1 text-xs text-brand-slate">
+                        {heldSlot
+                          ? `${heldSlot.dateKey} at ${heldSlot.timeKey}`
+                          : "Date and time confirmed with you"}
+                      </p>
+                    </div>
+                    {estimateResult && (
+                      <p className="shrink-0 text-2xl font-bold text-brand-ink">
+                        {cad(estimateResult.firstVisit)}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex flex-wrap gap-2">
+                  <SummaryChip onClick={() => goTo("service")}>Service</SummaryChip>
+                  <SummaryChip onClick={() => goTo("size")}>Home size</SummaryChip>
+                  <SummaryChip onClick={() => goTo("name")}>Contact</SummaryChip>
+                  {timeIdx >= 0 && step > timeIdx && (
+                    <SummaryChip onClick={() => goTo("time")}>Date & time</SummaryChip>
+                  )}
+                </div>
+
+                <div
+                  style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden" }}
+                  aria-hidden="true"
+                >
+                  <label>
+                    Comments
+                    <input
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={honeypot}
+                      onChange={(e) => setHoneypot(e.target.value)}
+                    />
+                  </label>
+                </div>
+              </Question>
+            )}
 
             {serverError && (
-              <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
+              <div className="mt-5 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700" role="alert">
                 {serverError}
               </div>
             )}
+            {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
 
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <Button type="button" variant="outline" onClick={() => setStep(5)} className="h-12 border-brand-deep px-6 text-brand-deep hover:bg-brand-sky-tint">
-                <ArrowLeft className="mr-2 size-4" aria-hidden /> Back
-              </Button>
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row-reverse sm:items-center sm:justify-between">
               <Button
                 type="button"
-                onClick={finalSubmit}
-                disabled={busy}
-                className="h-14 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover"
+                onClick={next}
+                disabled={busy || (stepId === "time" && estimateResult !== null && !heldSlot)}
+                className="h-14 w-full bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover sm:w-auto"
               >
                 {busy ? (
-                  <>
-                    <Loader2 className="mr-2 size-5 animate-spin" aria-hidden /> Sending…
-                  </>
-                ) : (
+                  <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
+                ) : null}
+                {stepId === "review" ? (
                   <>
                     Request This Cleaning <Send className="ml-2 size-4" aria-hidden />
                   </>
+                ) : stepId === "addons" && w.addons.length === 0 ? (
+                  <>
+                    None needed <ArrowRight className="ml-2 size-4" aria-hidden />
+                  </>
+                ) : (
+                  <>
+                    Continue <ArrowRight className="ml-2 size-4" aria-hidden />
+                  </>
                 )}
               </Button>
+              {step > 0 ? (
+                <button
+                  type="button"
+                  onClick={back}
+                  className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-brand-slate hover:text-brand-deep"
+                >
+                  <ArrowLeft className="size-4" aria-hidden /> Back
+                </button>
+              ) : (
+                <span />
+              )}
             </div>
-          </FormSection>
-        )}
+          </motion.div>
+        </AnimatePresence>
 
-        {/* Trust footer */}
-        <div className="mt-12 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-slate-200 pt-6 text-xs text-brand-slate">
-          <span className="inline-flex items-center gap-1.5"><ShieldCheck className="size-4 text-brand-deep" aria-hidden /> Your details stay private</span>
-          <span className="inline-flex items-center gap-1.5"><MapPin className="size-4 text-brand-deep" aria-hidden /> Winnipeg, MB only</span>
+        <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-2 border-t border-slate-200 pt-6 text-xs text-brand-slate">
           <span className="inline-flex items-center gap-1.5">
-            <Phone className="size-4 text-brand-deep" aria-hidden /> Prefer to talk?{" "}
-            <a href={`tel:${BRAND.phoneTel}`} className="font-semibold text-brand-deep">{BRAND.phone}</a>
+            <ShieldCheck className="size-4 text-brand-deep" aria-hidden /> Your details stay private
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <MapPin className="size-4 text-brand-deep" aria-hidden /> Winnipeg, MB only
+          </span>
+          <span className="inline-flex items-center gap-1.5">
+            <MessageSquare className="size-4 text-brand-deep" aria-hidden /> Prefer to talk?{" "}
+            <a href={`tel:${BRAND.phoneTel}`} className="font-semibold text-brand-deep">
+              {BRAND.phone}
+            </a>
           </span>
         </div>
       </section>
@@ -1046,94 +1271,232 @@ export default function Book() {
 }
 
 // ---------------------------------------------------------------------------
-// Small building blocks
+// Building blocks
 // ---------------------------------------------------------------------------
-function FormSection({
-  title,
-  icon: Icon,
-  children,
+function ProgressHeader({
+  pct,
+  question,
+  total,
 }: {
-  title: string;
-  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
-  children: React.ReactNode;
+  pct: number;
+  question: number;
+  total: number;
 }) {
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 sm:p-10">
-      <h2 className="flex items-center gap-3 text-xl font-bold text-brand-ink">
-        <span className="flex size-10 items-center justify-center rounded-xl bg-brand-sky-soft text-brand-deep">
-          <Icon className="size-5" aria-hidden />
-        </span>
-        {title}
-      </h2>
-      <div className="mt-8 space-y-6">{children}</div>
+    <div className="mb-7">
+      <div className="mb-2 flex items-end justify-between gap-4">
+        <p className="text-sm font-semibold text-brand-ink">
+          <span className="text-brand-deep">{pct}%</span> complete
+        </p>
+        <p className="text-xs font-medium text-slate-500">
+          Question {question} of {total}
+        </p>
+      </div>
+      <div
+        className="h-3 w-full overflow-hidden rounded-full bg-slate-100"
+        role="progressbar"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct}
+        aria-label="Booking progress"
+      >
+        <motion.div
+          className="h-full rounded-full bg-gradient-to-r from-brand-sky to-brand-deep"
+          initial={false}
+          animate={{ width: `${pct}%` }}
+          transition={{ type: "spring", stiffness: 120, damping: 20 }}
+        />
+      </div>
     </div>
   );
 }
 
-function Field({
-  label,
-  required,
-  error,
-  helper,
+function Question({
+  icon: Icon,
+  title,
+  hint,
   children,
 }: {
-  label: string;
-  required?: boolean;
-  error?: string;
-  helper?: string;
+  icon?: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  title: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <div>
-      <p className="text-sm font-semibold text-brand-ink">
-        {label} {required && <span className="text-brand-deep">*</span>}
-      </p>
-      {helper && <p className="mt-1 text-xs text-brand-slate">{helper}</p>}
-      <div className={helper ? "mt-2" : "mt-2"}>{children}</div>
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
+      {Icon && (
+        <span className="mb-3 flex size-11 items-center justify-center rounded-2xl bg-brand-sky-soft text-brand-deep">
+          <Icon className="size-5" aria-hidden />
+        </span>
+      )}
+      <h2 className="text-2xl font-bold leading-tight text-brand-ink sm:text-3xl">{title}</h2>
+      {hint && <p className="mt-2 text-sm text-brand-slate">{hint}</p>}
+      <div className="mt-6">{children}</div>
     </div>
   );
 }
 
-function StepNav({
-  onBack,
-  onNext,
-  nextLabel,
-  busy,
-  nextDisabled,
+function ChoiceCard({
+  selected,
+  disabled,
+  onClick,
+  icon: Icon,
+  title,
+  description,
+  centered,
 }: {
-  onBack?: () => void;
-  onNext: () => void;
-  nextLabel: string;
-  busy?: boolean;
-  nextDisabled?: boolean;
+  selected: boolean;
+  disabled?: boolean;
+  onClick: () => void;
+  icon?: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  title: string;
+  description?: string;
+  centered?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center sm:justify-between">
-      {onBack ? (
-        <Button type="button" variant="outline" onClick={onBack} className="h-12 border-brand-deep px-6 text-brand-deep hover:bg-brand-sky-tint">
-          <ArrowLeft className="mr-2 size-4" aria-hidden /> Back
-        </Button>
-      ) : (
-        <span />
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      aria-pressed={selected}
+      className={
+        "group relative rounded-2xl border p-4 text-left transition-all duration-150 " +
+        (centered ? "flex flex-col items-center justify-center gap-2 text-center " : "") +
+        (selected
+          ? "border-brand-deep bg-brand-sky-soft shadow-sm ring-1 ring-brand-deep "
+          : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-brand-deep hover:shadow-sm ") +
+        (disabled ? "cursor-not-allowed opacity-40 hover:translate-y-0 " : "")
+      }
+    >
+      {Icon && (
+        <span
+          className={
+            "mb-2 flex size-10 items-center justify-center rounded-xl transition-colors " +
+            (selected ? "bg-brand-deep text-white" : "bg-brand-sky-tint text-brand-deep")
+          }
+        >
+          <Icon className="size-5" aria-hidden />
+        </span>
       )}
-      <Button
-        type="button"
-        onClick={onNext}
-        disabled={busy || nextDisabled}
-        className="h-13 bg-brand-deep px-8 text-white shadow-brand hover:bg-brand-deep-hover"
-      >
-        {busy ? <Loader2 className="mr-2 size-4 animate-spin" aria-hidden /> : null}
-        {nextLabel} <ArrowRight className="ml-2 size-4" aria-hidden />
-      </Button>
+      <span className="block text-sm font-semibold text-brand-ink">{title}</span>
+      {description && (
+        <span className="mt-0.5 block text-xs text-brand-slate">{description}</span>
+      )}
+      {selected && !centered && (
+        <span className="absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-brand-deep text-white">
+          <Check className="size-3" aria-hidden />
+        </span>
+      )}
+    </button>
+  );
+}
+
+function Counter({
+  label,
+  icon: Icon,
+  value,
+  max,
+  onChange,
+  quick,
+}: {
+  label?: string;
+  icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>;
+  value: string;
+  max: number;
+  onChange: (v: number) => void;
+  quick?: number[];
+}) {
+  const n = parseInt(value, 10) || 0;
+  return (
+    <div className="rounded-2xl border border-slate-200 p-4">
+      {label && <p className="mb-2 text-sm font-semibold text-brand-ink">{label}</p>}
+      <div className="flex items-center justify-between gap-4">
+        <button
+          type="button"
+          onClick={() => onChange(Math.max(0, n - 1))}
+          aria-label={`Decrease ${label ?? "count"}`}
+          className="flex size-12 items-center justify-center rounded-xl border border-slate-200 text-xl font-bold text-brand-deep transition-colors hover:border-brand-deep hover:bg-brand-sky-tint"
+        >
+          −
+        </button>
+        <span className="flex items-center gap-2 text-4xl font-extrabold text-brand-ink">
+          <Icon className="size-6 text-brand-deep" aria-hidden />
+          {n}
+        </span>
+        <button
+          type="button"
+          onClick={() => onChange(Math.min(max, n + 1))}
+          aria-label={`Increase ${label ?? "count"}`}
+          className="flex size-12 items-center justify-center rounded-xl border border-slate-200 text-xl font-bold text-brand-deep transition-colors hover:border-brand-deep hover:bg-brand-sky-tint"
+        >
+          +
+        </button>
+      </div>
+      {quick && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {quick.map((q) => (
+            <button
+              key={q}
+              type="button"
+              onClick={() => onChange(q)}
+              className={
+                "rounded-full border px-3 py-1 text-xs font-semibold transition-colors " +
+                (n === q
+                  ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
+                  : "border-slate-200 text-brand-slate hover:border-brand-deep")
+              }
+            >
+              {q}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function formatDateShort(dateKey: string): string {
-  const [y, m, d] = dateKey.split("-").map(Number);
-  const dt = new Date(Date.UTC(y, m - 1, d));
-  return dt.toLocaleDateString("en-CA", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+function YesNo({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  return (
+    <div className="grid grid-cols-2 gap-2.5">
+      {[
+        { v: "no", l: "No" },
+        { v: "yes", l: "Yes" },
+      ].map((o) => (
+        <button
+          key={o.v}
+          type="button"
+          onClick={() => onChange(o.v)}
+          aria-pressed={value === o.v}
+          className={
+            "rounded-2xl border p-5 text-base font-semibold transition-colors " +
+            (value === o.v
+              ? "border-brand-deep bg-brand-sky-soft text-brand-deep"
+              : "border-slate-200 text-brand-slate hover:border-brand-deep")
+          }
+        >
+          {o.l}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function SummaryChip({
+  onClick,
+  children,
+}: {
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-brand-slate transition-colors hover:border-brand-deep hover:text-brand-deep"
+    >
+      Edit {children}
+    </button>
+  );
 }
 
 /** "YYYY-MM-DD" (Winnipeg local date) → JS Date at local midnight. */
@@ -1142,9 +1505,7 @@ function isoToDate(dateKey: string): Date {
   return new Date(y, m - 1, d);
 }
 
-/** JS Date → "YYYY-MM-DD" using the browser-side local calendar. For the
- * booking calendar this equals the Winnipeg date for all Manitoba users;
- * the authoritative slot math is server-side either way. */
+/** JS Date → "YYYY-MM-DD" using the browser-side local calendar. */
 function dateToIso(d: Date): string {
   const y = d.getFullYear();
   const m = String(d.getMonth() + 1).padStart(2, "0");
