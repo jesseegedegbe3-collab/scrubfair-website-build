@@ -226,6 +226,7 @@ export default function Book() {
   const [slotJustTaken, setSlotJustTaken] = useState(false);
   const [holdFailReason, setHoldFailReason] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
+  const [customAddon, setCustomAddon] = useState("");
   const [pickedDate, setPickedDate] = useState<string | null>(null);
   const [calendarMonth, setCalendarMonth] = useState<Date | undefined>(undefined);
 
@@ -523,7 +524,13 @@ export default function Book() {
         pets: w.pets === "yes",
         petsNote: w.pets === "yes" ? w.petsNote || undefined : undefined,
         entryMethod: w.entryMethod,
-        specialRequests: w.specialRequests || undefined,
+        specialRequests:
+          [
+            customAddon.trim() ? `Extra requested: ${customAddon.trim()}` : "",
+            w.specialRequests.trim(),
+          ]
+            .filter(Boolean)
+            .join("\n") || undefined,
         honeypot: honeypot || undefined,
         confirmVia: "email",
       });
@@ -581,22 +588,24 @@ export default function Book() {
   return (
     <div className="bg-white">
       <section className="border-b border-slate-200 bg-brand-sky-tint">
-        <div className="mx-auto max-w-3xl px-4 pb-8 pt-10 sm:px-6 sm:pt-12">
-          <p className="text-sm font-semibold uppercase tracking-wide text-brand-deep">
-            Book a cleaning
-          </p>
-          <h1 className="mt-2 text-3xl font-bold text-brand-ink sm:text-4xl">
+        <div className="mx-auto max-w-3xl px-4 pb-4 pt-5 sm:px-6">
+          <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
             A few quick taps, then your price.
           </h1>
-          <p className="mt-2 text-brand-slate">
-            One question at a time. You'll see your estimated price before you pick a
-            time. Winnipeg homes and businesses only.
+          <p className="mt-1 text-sm text-brand-slate">
+            One question at a time · Winnipeg only
           </p>
         </div>
       </section>
 
-      <section className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
-        <ProgressHeader pct={pct} />
+      {/* Progress stays pinned under the site header so it is always visible. */}
+      <div className="sticky top-20 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div className="mx-auto max-w-3xl px-4 py-3 sm:px-6">
+          <ProgressHeader pct={pct} />
+        </div>
+      </div>
+
+      <section className="mx-auto max-w-3xl px-4 pb-8 pt-5 sm:px-6">
 
         {outsideArea && (
           <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
@@ -619,7 +628,7 @@ export default function Book() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
-            className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-9"
+            className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
           >
             {stepId === "service" && (
               <Question
@@ -630,6 +639,7 @@ export default function Book() {
                   {SERVICE_CHOICES.map(({ v, t, d, Icon }) => (
                     <ChoiceCard
                       key={v}
+                      inline
                       selected={w.serviceType === v}
                       onClick={() =>
                         pick(() => {
@@ -751,7 +761,7 @@ export default function Book() {
                 title="Roughly how big is the space?"
                 hint="Count only the finished floors we're cleaning — not the basement."
               >
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-3 gap-2.5 sm:grid-cols-4">
                   {SQFT_BUCKETS.map((b, i) => {
                     const on = w.sqftBucket === String(b.value) && !w.sqft;
                     return (
@@ -765,7 +775,7 @@ export default function Book() {
                         }}
                         aria-pressed={on}
                         className={
-                          "flex flex-col items-center gap-3 rounded-2xl border px-4 py-5 text-center transition-all duration-150 " +
+                          "flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-3 text-center transition-all duration-150 " +
                           (on
                             ? "border-brand-deep bg-brand-sky-soft shadow-sm ring-1 ring-brand-deep"
                             : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-brand-deep hover:shadow-sm")
@@ -773,7 +783,7 @@ export default function Book() {
                       >
                         <span
                           className={
-                            "flex size-11 items-center justify-center rounded-xl transition-colors " +
+                            "flex size-9 items-center justify-center rounded-lg transition-colors " +
                             (on
                               ? "bg-brand-deep text-white"
                               : "bg-brand-sky-tint text-brand-deep")
@@ -781,14 +791,17 @@ export default function Book() {
                         >
                           <SizeIcon level={i} />
                         </span>
-                        <span className="text-sm font-semibold leading-snug text-brand-ink">
-                          {b.label}
+                        <span className="text-[11px] font-semibold leading-tight text-brand-ink">
+                          {b.label.replace(" sq ft", "")}
                         </span>
                       </button>
                     );
                   })}
                 </div>
-                <div className="mt-6">
+                <p className="mt-2 text-center text-xs text-slate-500">
+                  Square feet, finished floors only.
+                </p>
+                <div className="mt-4">
                   <label className="text-sm font-semibold text-brand-ink" htmlFor="sqft">
                     Or type the exact square footage
                   </label>
@@ -810,12 +823,9 @@ export default function Book() {
                         setError(null);
                       }}
                       placeholder="e.g. 1200"
-                      className="h-12 w-full rounded-lg border border-input pl-11 pr-4 text-base text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
+                      className="h-11 w-full rounded-lg border border-input pl-11 pr-4 text-base text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
                     />
                   </div>
-                  <p className="mt-1.5 text-xs text-brand-slate">
-                    Any number is fine — we'll confirm the details with you.
-                  </p>
                 </div>
               </Question>
             )}
@@ -879,6 +889,24 @@ export default function Book() {
                       </button>
                     );
                   })}
+                </div>
+
+                <div className="mt-4">
+                  <label className="text-sm font-semibold text-brand-ink" htmlFor="custom-addon">
+                    Something else you'd like added?
+                  </label>
+                  <input
+                    id="custom-addon"
+                    type="text"
+                    value={customAddon}
+                    onChange={(e) => setCustomAddon(e.target.value.slice(0, 200))}
+                    maxLength={200}
+                    placeholder="e.g. inside kitchen cabinets, garage floor"
+                    className="mt-2 h-12 w-full rounded-lg border border-input px-3 text-sm text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
+                  />
+                  <p className="mt-1.5 text-xs text-brand-slate">
+                    We'll price anything custom and confirm it with you by phone.
+                  </p>
                 </div>
               </Question>
             )}
@@ -1320,7 +1348,7 @@ export default function Book() {
                     <>
                       Request This Cleaning <Send className="ml-2 size-4" aria-hidden />
                     </>
-                  ) : stepId === "addons" && w.addons.length === 0 ? (
+                  ) : stepId === "addons" && w.addons.length === 0 && !customAddon.trim() ? (
                     <>
                       None needed <ArrowRight className="ml-2 size-4" aria-hidden />
                     </>
@@ -1368,10 +1396,10 @@ export default function Book() {
 // ---------------------------------------------------------------------------
 function ProgressHeader({ pct }: { pct: number }) {
   return (
-    <div className="mb-7">
-      <p className="mb-2 text-sm font-semibold text-brand-deep">{pct}%</p>
+    <div>
+      <p className="mb-1.5 text-sm font-semibold text-brand-deep">{pct}%</p>
       <div
-        className="h-3 w-full overflow-hidden rounded-full bg-slate-100"
+        className="h-2.5 w-full overflow-hidden rounded-full bg-slate-100"
         role="progressbar"
         aria-valuemin={0}
         aria-valuemax={100}
@@ -1407,9 +1435,9 @@ function Question({
           <Icon className="size-5" aria-hidden />
         </span>
       )}
-      <h2 className="text-2xl font-bold leading-tight text-brand-ink sm:text-3xl">{title}</h2>
-      {hint && <p className="mt-2 text-sm text-brand-slate">{hint}</p>}
-      <div className="mt-6">{children}</div>
+      <h2 className="text-xl font-bold leading-tight text-brand-ink sm:text-2xl">{title}</h2>
+      {hint && <p className="mt-1.5 text-sm text-brand-slate">{hint}</p>}
+      <div className="mt-5">{children}</div>
     </div>
   );
 }
@@ -1423,6 +1451,7 @@ function ChoiceCard({
   title,
   description,
   centered,
+  inline,
 }: {
   selected: boolean;
   disabled?: boolean;
@@ -1432,6 +1461,7 @@ function ChoiceCard({
   title: string;
   description?: string;
   centered?: boolean;
+  inline?: boolean;
 }) {
   return (
     <button
@@ -1442,6 +1472,7 @@ function ChoiceCard({
       className={
         "group relative rounded-2xl border p-4 text-left transition-all duration-150 " +
         (centered ? "flex flex-col items-center justify-center gap-2 text-center " : "") +
+        (inline ? "flex items-center gap-3 " : "") +
         (selected
           ? "border-brand-deep bg-brand-sky-soft shadow-sm ring-1 ring-brand-deep "
           : "border-slate-200 bg-white hover:-translate-y-0.5 hover:border-brand-deep hover:shadow-sm ") +
@@ -1451,17 +1482,21 @@ function ChoiceCard({
       {(renderIcon || Icon) && (
         <span
           className={
-            "mb-2 flex size-10 items-center justify-center rounded-xl transition-colors " +
+            "flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors " +
+            (inline ? "" : "mb-2") +
+            " " +
             (selected ? "bg-brand-deep text-white" : "bg-brand-sky-tint text-brand-deep")
           }
         >
           {renderIcon ? renderIcon() : Icon ? <Icon className="size-5" aria-hidden /> : null}
         </span>
       )}
-      <span className="block text-sm font-semibold text-brand-ink">{title}</span>
-      {description && (
-        <span className="mt-0.5 block text-xs text-brand-slate">{description}</span>
-      )}
+      <span className={inline ? "min-w-0 flex-1 pr-4" : "block"}>
+        <span className="block text-sm font-semibold text-brand-ink">{title}</span>
+        {description && (
+          <span className="mt-0.5 block text-xs text-brand-slate">{description}</span>
+        )}
+      </span>
       {selected && !centered && (
         <span className="absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-brand-deep text-white">
           <Check className="size-3" aria-hidden />
@@ -1738,21 +1773,20 @@ function FrequencyIcon({ value }: { value: string }) {
   );
 }
 
-/** Footprint that grows with the size bucket. */
+/** The same little house, drawn bigger as the size bucket grows. */
 function SizeIcon({ level }: { level: number }) {
-  const size = 9 + level * 2.4;
-  const offset = (32 - size) / 2;
+  // 0.6 → 1.15 across the seven buckets, scaled about the house's centre.
+  const scale = 0.6 + (level / 6) * 0.55;
   return (
     <svg {...SVG}>
-      <rect
-        x={offset + 3}
-        y={offset + 3}
-        width={size}
-        height={size}
-        rx="2"
-        strokeWidth={2}
-      />
-      <path d={`M${offset + 7} ${offset + 9}h2`} strokeWidth={1.6} opacity={0.6} />
+      <g
+        transform={`translate(16 16) scale(${scale}) translate(-16 -16)`}
+        strokeWidth={2 / scale}
+      >
+        <path d="M4 15 16 5.5 28 15" />
+        <path d="M7.5 14v12.5h17V14" />
+        <path d="M13.5 26.5v-6h5v6" />
+      </g>
     </svg>
   );
 }
