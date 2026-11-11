@@ -94,8 +94,17 @@ interface WizardState {
   fullBaths: string;
   halfBaths: string;
   homeType: string;
-  serviceType: "standard" | "deep" | "move_in_out" | "commercial" | "showhomes" | "post_construction" | "carpet" | "other";
-  frequency: "one_time" | "weekly" | "biweekly" | "monthly";
+  serviceType:
+    | ""
+    | "standard"
+    | "deep"
+    | "move_in_out"
+    | "commercial"
+    | "showhomes"
+    | "post_construction"
+    | "carpet"
+    | "other";
+  frequency: "" | "one_time" | "weekly" | "biweekly" | "monthly";
   addons: string[];
   condition: string;
   pests: string;
@@ -119,11 +128,11 @@ const initialWizard: WizardState = {
   sqft: "",
   sqftBucket: "",
   bedrooms: "",
-  fullBaths: "1",
-  halfBaths: "0",
+  fullBaths: "",
+  halfBaths: "",
   homeType: "",
-  serviceType: "standard",
-  frequency: "one_time",
+  serviceType: "",
+  frequency: "",
   addons: [],
   condition: "",
   pests: "",
@@ -241,7 +250,7 @@ export default function Book() {
     fullBaths: parseInt(w.fullBaths, 10) || 0,
     halfBaths: parseInt(w.halfBaths, 10) || 0,
     homeType: w.homeType || "bungalow",
-    frequency: w.frequency,
+    frequency: w.frequency || "one_time",
     addons: w.addons,
     deepClean,
   });
@@ -479,6 +488,16 @@ export default function Book() {
 
   async function finalSubmit() {
     if (!leadId) return;
+    if (!w.serviceType) {
+      goTo("service");
+      setError("Pick the kind of clean you need.");
+      return;
+    }
+    if (!w.frequency && !oneTimeOnly) {
+      goTo("frequency");
+      setError("Pick how often we should come.");
+      return;
+    }
     const needsSlot = estimateResult !== null;
     if (needsSlot && !heldSlot) {
       setServerError("Please pick a date and time first.");
@@ -497,7 +516,7 @@ export default function Book() {
         halfBaths: parseInt(w.halfBaths, 10) || 0,
         homeType: w.homeType,
         serviceType: w.serviceType,
-        frequency: w.frequency,
+        frequency: w.frequency || "one_time",
         addons: w.addons,
         condition: w.condition,
         pests: w.pests === "yes",
@@ -614,9 +633,20 @@ export default function Book() {
                       selected={w.serviceType === v}
                       onClick={() =>
                         pick(() => {
-                          set("serviceType", v as WizardState["serviceType"]);
-                          if (v === "deep" || v === "move_in_out")
-                            set("frequency", "one_time");
+                          const forcedOneTime = v === "deep" || v === "move_in_out";
+                          const wasForced =
+                            w.serviceType === "deep" || w.serviceType === "move_in_out";
+                          setW((prev) => ({
+                            ...prev,
+                            serviceType: v as WizardState["serviceType"],
+                            // One-time services lock frequency; switching away
+                            // clears it so nothing looks pre-selected.
+                            frequency: forcedOneTime
+                              ? "one_time"
+                              : wasForced
+                                ? ""
+                                : prev.frequency,
+                          }));
                         })
                       }
                       icon={Icon}
