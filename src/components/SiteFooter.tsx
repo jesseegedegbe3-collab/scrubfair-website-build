@@ -41,13 +41,13 @@ export function SiteFooter() {
               </a>
             </div>
             <div className="mt-2 flex items-center gap-4 text-sm">
-              <Link
-                to="/contact"
+              <a
+                href={`mailto:${BRAND.email}`}
                 className="inline-flex items-center gap-2 text-brand-slate hover:text-brand-deep"
               >
                 <Mail className="size-4" aria-hidden />
                 {BRAND.email}
-              </Link>
+              </a>
             </div>
             <div className="mt-2 flex items-center gap-4 text-sm">
               <span className="inline-flex items-center gap-2 text-brand-slate">
@@ -118,12 +118,12 @@ export function SiteFooter() {
           </nav>
           <p>
             Licensed &amp; Insured &middot; Serving Winnipeg, MB &middot;{" "}
-            <Link
-              to="/contact"
+            <a
+              href={`mailto:${BRAND.email}`}
               className="hover:text-brand-deep"
             >
               {BRAND.email}
-            </Link>
+            </a>
           </p>
         </div>
       </div>

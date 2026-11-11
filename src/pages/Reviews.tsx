@@ -1,6 +1,6 @@
 import { Link } from "react-router";
 import { useQuery } from "convex/react";
-import { ArrowRight, Star, Quote, Mail, Sparkles } from "lucide-react";
+import { ArrowRight, Star, Quote, Phone, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { IMAGES } from "@/lib/images";
 import { BRAND } from "@/lib/brand";
@@ -175,10 +175,10 @@ export default function Reviews() {
               variant="outline"
               className="h-14 border-brand-deep px-8 text-base text-brand-deep hover:bg-white"
             >
-              <Link to="/contact">
-                <Mail className="mr-2 size-5" aria-hidden />
-                Email us
-              </Link>
+              <a href={`tel:${BRAND.phoneTel}`}>
+                <Phone className="mr-2 size-5" aria-hidden />
+                Call us
+              </a>
             </Button>
           </div>
         </div>

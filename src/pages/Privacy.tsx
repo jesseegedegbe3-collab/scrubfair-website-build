@@ -1,8 +1,7 @@
-import { Link } from "react-router";
 import { Mail, Phone, ShieldCheck } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 
-const LAST_UPDATED = "September 26, 2026";
+const LAST_UPDATED = "November 11, 2026";
 
 const SECTIONS = [
   {
@@ -34,34 +33,24 @@ const SECTIONS = [
       <>
         <p>
           We collect personal information directly from you, and only when
-          you choose to provide it:
+          you choose to provide it. When you use our{" "}
+          <strong>booking form</strong> (/book), we collect, to prepare your
+          estimated quote and reserve a time:
         </p>
         <ul className="ml-5 list-disc space-y-1.5">
           <li>
-            <strong>Name</strong> — to address you in our reply
+            <strong>Name</strong> — to address you and confirm your booking
           </li>
           <li>
-            <strong>Email</strong> — to send your quote and follow-up
-            correspondence
+            <strong>Email</strong> — to send your booking confirmation and
+            follow-up correspondence
           </li>
           <li>
-            <strong>Phone number</strong> (optional) — so we can reach you
-            quickly by call or text if you prefer
-          </li>
-          <li>
-            <strong>Selected service</strong> — which of our services your
-            inquiry relates to, so we can prepare an accurate quote
-          </li>
-          <li>
-            <strong>Message</strong> — details about the home, square
-            footage, pets, scheduling, or anything else you share
+            <strong>Phone number</strong> — so we can reach you about your
+            booking
           </li>
         </ul>
-        <p>
-          When you use our <strong>booking request form</strong> (/book), we
-          additionally collect, to prepare your estimated quote and reserve a
-          time:
-        </p>
+        <p>Along with the booking details listed below:</p>
         <ul className="ml-5 list-disc space-y-1.5">
           <li>
             <strong>Home service address</strong> (street, unit, city, postal
@@ -78,8 +67,8 @@ const SECTIONS = [
             add-ons, and the home's current condition
           </li>
           <li>
-            <strong>Scheduling details</strong> — your requested date and
-            time (held, not confirmed, until we confirm it with you)
+            <strong>Scheduling details</strong> — the date and time you
+            booked, which is reserved for you when you submit the form
           </li>
           <li>
             <strong>Practical notes</strong> — pets, preferred entry method,
@@ -109,14 +98,13 @@ const SECTIONS = [
     title: "3. How we use your information",
     body: (
       <p>
-        We use the information you submit solely to respond to your inquiry,
-        prepare and confirm a quote, schedule service, and — once you're a
-        customer — communicate with you about upcoming bookings. Booking
-        requests are reviewed by our team before any booking is confirmed,
-        and your requested time is held (not guaranteed) until we confirm.
-        We do not sell, rent, or trade your personal information. We do not
-        use your information for automated profiling or marketing
-        decision-making.
+        We use the information you submit solely to prepare your estimate,
+        schedule service, and communicate with you about your booking — the
+        confirmation email is sent to you the moment your booking is placed.
+        If you call us, we use what you tell us to help with your question,
+        your booking, or your data request. We do not sell, rent, or trade
+        your personal information. We do not use your information for
+        automated profiling or marketing decision-making.
       </p>
     ),
   },
@@ -126,10 +114,11 @@ const SECTIONS = [
     body: (
       <>
         <p>
-          To deliver the contact-form experience and route quote requests
-          to our team, ScrubFair uses a small number of secure, vetted
-          third-party service providers. When you submit our contact form,
-          your name, email, phone number, and message are transmitted to:
+          To run our online booking form and route your booking to our
+          team, ScrubFair uses a small number of secure, vetted third-party
+          service providers. When you submit the booking form, your name,
+          email address, phone number, and booking details are transmitted
+          to:
         </p>
         <ul className="ml-5 list-disc space-y-2">
           <li>
@@ -226,17 +215,18 @@ const SECTIONS = [
           to request permanent deletion of your information.
         </p>
         <p>
-          To exercise any of these rights, email{" "}
-          <Link
-            to="/contact"
+          To exercise any of these rights, please call us at{" "}
+          <a
+            href={`tel:${BRAND.phoneTel}`}
             className="font-semibold text-brand-deep underline-offset-4 hover:underline"
           >
-            {BRAND.email}
-          </Link>{" "}
-          with the subject line "Privacy request." We will acknowledge
-          your request within <strong>5 business days</strong> and respond
-          substantively within <strong>30 days</strong>, as required by
-          PIPEDA.
+            {BRAND.phone}
+          </a>{" "}
+          during {BRAND.hours}. We ask you to call rather than submit an
+          online form so we can verify your identity before we disclose,
+          correct, or delete anything. We will acknowledge your request
+          within <strong>5 business days</strong> and respond substantively
+          within <strong>30 days</strong>, as required by PIPEDA.
         </p>
         <p>
           If you are not satisfied with our response, you have the right
@@ -258,11 +248,11 @@ const SECTIONS = [
     ),
     body: (
       <p>
-        Submitted data is transmitted over HTTPS, stored in an
-        authenticated Convex database with role-based access controls, and
-        only accessible to authorized ScrubFair operators. We restrict
-        access on a need-to-know basis and revoke credentials when staff
-        or contractors leave the business.
+        Data you submit through the booking form is transmitted over HTTPS,
+        stored in an authenticated Convex database with role-based access
+        controls, and only accessible to authorized ScrubFair operators. We
+        restrict access on a need-to-know basis and revoke credentials when
+        staff or contractors leave the business.
       </p>
     ),
   },
@@ -272,7 +262,16 @@ const SECTIONS = [
     body: (
       <p>
         For any privacy-related question, concern, or access request,
-        please contact our privacy officer:
+        please call our privacy officer at{" "}
+        <a
+          href={`tel:${BRAND.phoneTel}`}
+          className="font-semibold text-brand-deep underline-offset-4 hover:underline"
+        >
+          {BRAND.phone}
+        </a>{" "}
+        during {BRAND.hours}. Please do not send personal-data requests by
+        email or through any online form — we handle them by phone so we can
+        verify who we're speaking with first.
       </p>
     ),
   },
@@ -324,36 +323,39 @@ export function Privacy() {
               {section.id === "contact" && (
                 <div className="mt-6 grid gap-3 rounded-xl border border-slate-200 bg-slate-50 p-5 sm:grid-cols-2">
                   <div className="flex items-start gap-3">
-                    <Mail
-                      className="mt-0.5 size-5 shrink-0 text-brand-deep"
-                      aria-hidden
-                    />
-                    <div>
-                      <p className="text-xs font-semibold tracking-wide text-brand-slate uppercase">
-                        Email
-                      </p>
-                      <Link
-                        to="/contact"
-                        className="text-base font-semibold text-brand-ink hover:text-brand-deep"
-                      >
-                        {BRAND.email}
-                      </Link>
-                    </div>
-                  </div>
-                  <div className="flex items-start gap-3">
                     <Phone
                       className="mt-0.5 size-5 shrink-0 text-brand-deep"
                       aria-hidden
                     />
                     <div>
                       <p className="text-xs font-semibold tracking-wide text-brand-slate uppercase">
-                        Phone
+                        Phone (data requests)
                       </p>
                       <a
                         href={`tel:${BRAND.phoneTel}`}
                         className="text-base font-semibold text-brand-ink hover:text-brand-deep"
                       >
                         {BRAND.phone}
+                      </a>
+                      <p className="mt-0.5 text-sm text-brand-slate">
+                        {BRAND.hours}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Mail
+                      className="mt-0.5 size-5 shrink-0 text-brand-deep"
+                      aria-hidden
+                    />
+                    <div>
+                      <p className="text-xs font-semibold tracking-wide text-brand-slate uppercase">
+                        Email (general)
+                      </p>
+                      <a
+                        href={`mailto:${BRAND.email}`}
+                        className="text-base font-semibold text-brand-ink hover:text-brand-deep"
+                      >
+                        {BRAND.email}
                       </a>
                     </div>
                   </div>
@@ -369,14 +371,22 @@ export function Privacy() {
               aria-hidden
             />
             <p className="mt-3 text-base text-brand-ink">
-              Questions about your privacy or this policy?
+              Questions about your privacy or this policy? Call {" "}
+              <a
+                href={`tel:${BRAND.phoneTel}`}
+                className="font-semibold text-brand-deep underline-offset-4 hover:underline"
+              >
+                {BRAND.phone}
+              </a>
+              .
             </p>
-            <Link
-              to="/contact"
+            <a
+              href={`tel:${BRAND.phoneTel}`}
               className="mt-5 inline-flex items-center justify-center rounded-full bg-brand-deep px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-ink"
             >
-              Reach out
-            </Link>
+              <Phone className="mr-2 size-4" aria-hidden />
+              Call {BRAND.phone}
+            </a>
           </div>
         </div>
       </section>

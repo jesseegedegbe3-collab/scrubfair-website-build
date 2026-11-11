@@ -47,7 +47,7 @@ const SECTIONS = [
     body: (
       <>
         <p>
-          Submitting our contact form or our booking form (/book) creates a
+          Submitting our booking form (/book) creates a
           <strong> request for a quote</strong>, not a binding service
           contract.
         </p>
@@ -87,13 +87,13 @@ const SECTIONS = [
         know within <strong>24 hours</strong> of the clean and we will
         come back to make it right at no additional charge. Just send a
         quick photo and a note to{" "}
-        <Link
-          to="/contact"
+        <a
+          href={`mailto:${BRAND.email}`}
           className="font-semibold text-brand-deep underline-offset-4 hover:underline"
         >
           {BRAND.email}
-        </Link>{" "}
-        or text us at{" "}
+        </a>{" "}
+        or call us at{" "}
         <a
           href={`tel:${BRAND.phoneTel}`}
           className="font-semibold text-brand-deep underline-offset-4 hover:underline"
@@ -271,12 +271,12 @@ export function Terms() {
                       <p className="text-xs font-semibold tracking-wide text-brand-slate uppercase">
                         Email
                       </p>
-                      <Link
-                        to="/contact"
+                      <a
+                        href={`mailto:${BRAND.email}`}
                         className="text-base font-semibold text-brand-ink hover:text-brand-deep"
                       >
                         {BRAND.email}
-                      </Link>
+                      </a>
                     </div>
                   </div>
                   <div className="flex items-start gap-3">
@@ -311,10 +311,10 @@ export function Terms() {
               Ready to book a clean?
             </p>
             <Link
-              to="/contact"
+              to="/book"
               className="mt-5 inline-flex items-center justify-center rounded-full bg-brand-deep px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-ink"
             >
-              Request a quote
+              Get an estimate
             </Link>
           </div>
         </div>

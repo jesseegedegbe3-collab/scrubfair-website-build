@@ -107,10 +107,10 @@ export default function Services() {
                   </div>
 
                   <Link
-                    to={`/contact?service=${service.id}`}
+                    to="/book"
                     className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-brand-deep transition-colors hover:text-brand-deep-hover"
                   >
-                    Request this service
+                    Get an estimate
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" aria-hidden />
                   </Link>
                 </article>

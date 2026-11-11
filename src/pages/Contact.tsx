@@ -1,404 +1,133 @@
-import { useState } from "react";
-import { Link, useSearchParams } from "react-router";
-import { useAction } from "convex/react";
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { Link } from "react-router";
 import {
+  ArrowRight,
+  CalendarCheck,
   Mail,
-  Phone,
   MapPin,
-  Send,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  Check,
-  Info,
+  Phone,
   ShieldCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { IMAGES } from "@/lib/images";
-import { BRAND, SERVICES } from "@/lib/brand";
-import { api } from "../convex/_generated/api";
-
-const formSchema = z.object({
-  name: z
-    .string()
-    .trim()
-    .min(2, "Please enter your name (at least 2 characters).")
-    .max(100, "Name is too long."),
-  email: z
-    .string()
-    .trim()
-    .email("Please enter a valid email address."),
-  phone: z
-    .string()
-    .trim()
-    .max(40, "Phone number is too long.")
-    .optional()
-    .or(z.literal("")),
-  service: z.string(),
-  message: z
-    .string()
-    .trim()
-    .min(10, "Tell us a little more — at least 10 characters.")
-    .max(2000, "Message is too long (max 2000 characters)."),
-  isPrivacyRequest: z.boolean(),
-}).superRefine((values, ctx) => {
-  // A service selection is only required for regular (non-privacy) requests.
-  if (!values.isPrivacyRequest && !values.service) {
-    ctx.addIssue({
-      code: z.ZodIssueCode.custom,
-      path: ["service"],
-      message: "Please select a service.",
-    });
-  }
-});
-
-type FormValues = z.infer<typeof formSchema>;
-
-type SubmitState =
-  | { kind: "idle" }
-  | { kind: "submitting" }
-  | {
-      kind: "success";
-      warnings: string[];
-      emailSent: boolean;
-      emailFromUsed: string | null;
-      telegramSent: boolean;
-    }
-  | { kind: "error"; message: string };
+import { BRAND } from "@/lib/brand";
 
 export default function Contact() {
-  const submit = useAction(api.contact.submitContactForm);
-  const [searchParams] = useSearchParams();
-  const requestedService = searchParams.get("service");
-  const defaultService =
-    SERVICES.find((service) => service.id === requestedService)?.name ?? "";
-  const [state, setState] = useState<SubmitState>({ kind: "idle" });
-
-  const {
-    register,
-    handleSubmit,
-    reset,
-    setValue,
-    watch,
-    trigger,
-    formState: { errors, isSubmitting },
-  } = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      service: defaultService,
-      message: "",
-      isPrivacyRequest: false,
-    },
-  });
-
-  const isPrivacyRequest = watch("isPrivacyRequest") ?? false;
-
-  const onSubmit = async (values: FormValues) => {
-    setState({ kind: "submitting" });
-    try {
-      const result = await submit({
-        name: values.name.trim(),
-        email: values.email.trim(),
-        phone: values.phone?.trim() || undefined,
-        service: values.isPrivacyRequest ? "Privacy request" : values.service,
-        message: values.message.trim(),
-        source: "contact-page",
-        isPrivacyRequest: values.isPrivacyRequest,
-      });
-      setState({
-        kind: "success",
-        warnings: result.warnings ?? [],
-        emailSent: !!result.emailSent,
-        emailFromUsed: result.emailFromUsed ?? null,
-        telegramSent: !!result.telegramSent,
-      });
-
-      // Google Ads conversion tracking — fires once per successful submission.
-      // transaction_id dedupes so a re-render/retry can't double-count.
-      // (Privacy requests are excluded on purpose — they are not sales leads.)
-      if (
-        !values.isPrivacyRequest &&
-        typeof window !== "undefined" &&
-        typeof window.gtag === "function"
-      ) {
-        window.gtag("event", "conversion", {
-          send_to: "AW-11192599006/oflPCL-ChKIcEN6Dhtkp",
-          transaction_id:
-            typeof crypto !== "undefined" && crypto.randomUUID
-              ? crypto.randomUUID()
-              : `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        });
-      }
-
-      reset();
-      setValue("isPrivacyRequest", false);
-    } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Something went wrong. Please try again.";
-      setState({ kind: "error", message: msg });
-    }
-  };
-
-  const busy = isSubmitting || state.kind === "submitting";
-
   return (
-    <div
-           className="bg-white"
-    >
+    <div className="bg-white">
       {/* ─────────── Page header ─────────── */}
       <section className="bg-brand-sky-tint">
         <div className="mx-auto max-w-7xl px-4 pt-20 pb-10 sm:px-6 lg:px-8 lg:pt-24 lg:pb-12">
-          <div
-                 className="mx-auto max-w-3xl text-center"
-          >
+          <div className="mx-auto max-w-3xl text-center">
             <p className="text-sm font-semibold tracking-wide text-brand-deep uppercase">
               Contact
             </p>
             <h1 className="mt-3 text-4xl font-bold text-brand-ink sm:text-5xl">
-              Let's get your space on the calendar.
+              Give us a call.
             </h1>
             <p className="mt-5 text-lg text-brand-slate">
-              Tell us what you need cleaned and what you're looking for.
-              Whether it's a home, workspace, move, showhome, or renovation,
-              we'll get back to you within one business day with a free,
-              no-obligation quote.
+              Booking a clean takes about three minutes online — you'll see your
+              estimated price before you pick a time. For anything else,
+              questions, changes, or a request about your personal information,
+              the fastest way to reach us is by phone.
             </p>
           </div>
         </div>
       </section>
 
-      {/* ─────────── Form + Info ─────────── */}
+      {/* ─────────── Call / book / info ─────────── */}
       <section className="bg-white">
         <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
           <div className="grid gap-12 lg:grid-cols-5 lg:gap-16">
-            {/* Form */}
-            <div
-                         className="lg:col-span-3"
-            >
+            <div className="lg:col-span-3">
               <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm sm:p-10">
-                {state.kind === "success" ? (
-                  <SuccessPanel
-                    onReset={() => setState({ kind: "idle" })}
-                    warnings={state.warnings}
-                    emailSent={state.emailSent}
-                    emailFromUsed={state.emailFromUsed}
-                    telegramSent={state.telegramSent}
-                  />
-                ) : (
-                  <form
-                    onSubmit={handleSubmit(onSubmit)}
-                    noValidate
-                    className="space-y-6"
+                <div className="flex items-start gap-4">
+                  <span className="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-brand-sky-soft text-brand-deep">
+                    <Phone className="size-6" aria-hidden />
+                  </span>
+                  <div>
+                    <h2 className="text-xl font-bold text-brand-ink">
+                      Call or text us
+                    </h2>
+                    <p className="mt-1 text-sm text-brand-slate">
+                      {BRAND.hours} · Winnipeg, {BRAND.province}
+                    </p>
+                  </div>
+                </div>
+
+                <a
+                  href={`tel:${BRAND.phoneTel}`}
+                  className="mt-6 block rounded-2xl bg-brand-deep px-6 py-5 text-center text-2xl font-bold tracking-tight text-white shadow-brand transition hover:bg-brand-deep-hover sm:text-3xl"
+                >
+                  {BRAND.phone}
+                </a>
+
+                <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                  <Button
+                    asChild
+                    size="lg"
+                    className="h-12 flex-1 bg-brand-deep px-6 text-base text-white shadow-brand hover:bg-brand-deep-hover"
                   >
-                    <div className="grid gap-6 sm:grid-cols-2">
-                      <Field
-                        id="name"
-                        label="Your name"
-                        placeholder="Evelyn Egedegbe"
-                        error={errors.name?.message}
-                        registration={register("name")}
-                        autoComplete="name"
-                        required
-                      />
-                      <Field
-                        id="email"
-                        label="Email"
-                        type="email"
-                        placeholder="you@example.com"
-                        error={errors.email?.message}
-                        registration={register("email")}
-                        autoComplete="email"
-                        required
-                      />
-                    </div>
-                    <Field
-                      id="phone"
-                      label="Phone (optional)"
-                      type="tel"
-                      placeholder="204-555-0123"
-                      error={errors.phone?.message}
-                      registration={register("phone")}
-                      autoComplete="tel"
-                    />
+                    <Link to="/book">
+                      <CalendarCheck className="mr-2 size-5" aria-hidden />
+                      Book online instead
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    size="lg"
+                    variant="outline"
+                    className="h-12 flex-1 border-brand-deep px-6 text-base text-brand-deep hover:bg-brand-sky-tint"
+                  >
+                    <a href={`mailto:${BRAND.email}`}>
+                      <Mail className="mr-2 size-5" aria-hidden />
+                      Email us
+                    </a>
+                  </Button>
+                </div>
 
-                    {/* Personal-data (privacy) request toggle */}
-                    <div className="flex items-start justify-between gap-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex items-start gap-3">
-                        <ShieldCheck
-                          className="mt-0.5 size-5 shrink-0 text-brand-deep"
-                          aria-hidden
-                        />
-                        <div>
-                          <Label
-                            htmlFor="privacy-toggle"
-                            className="text-sm font-semibold text-brand-ink"
-                          >
-                            This is about my personal data
-                          </Label>
-                          <p className="mt-0.5 text-xs text-brand-slate">
-                            Turn this on to request access to, correction of, or
-                            deletion of your information (see our{" "}
-                            <Link
-                              to="/privacy"
-                              className="font-medium text-brand-deep underline-offset-2 hover:underline"
-                            >
-                              Privacy Policy
-                            </Link>
-                            ). No service selection needed.
-                          </p>
-                        </div>
-                      </div>
-                      <Switch
-                        id="privacy-toggle"
-                        checked={isPrivacyRequest}
-                        onCheckedChange={(checked) => {
-                          setValue("isPrivacyRequest", checked, {
-                            shouldValidate: false,
-                          });
-                          // If switching back to a service request, re-validate
-                          // so the service requirement error clears cleanly.
-                          if (!checked) {
-                            void trigger("service");
-                          }
-                        }}
-                        aria-label="This is about my personal data"
-                      />
-                    </div>
-
-                    {!isPrivacyRequest && (
-                      <div>
-                        <Label
-                          htmlFor="service"
-                          className="text-sm font-semibold text-brand-ink"
-                        >
-                          Service <span className="text-brand-deep">*</span>
-                        </Label>
-                        <select
-                          id="service"
-                          className="mt-2 flex h-12 w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-brand-ink outline-none focus-visible:border-brand-deep focus-visible:ring-2 focus-visible:ring-brand-deep/30"
-                          {...register("service")}
-                        >
-                          <option value="">Select a service</option>
-                          <optgroup label="Residential">
-                            {SERVICES.filter((service) =>
-                              ["standard", "deep", "move-in-out", "carpet"].includes(service.id),
-                            ).map((service) => (
-                              <option key={service.id} value={service.name}>
-                                {service.name}
-                              </option>
-                            ))}
-                          </optgroup>
-                          <optgroup label="Business & property">
-                            {SERVICES.filter((service) =>
-                              ["commercial", "showhomes", "post-construction"].includes(service.id),
-                            ).map((service) => (
-                              <option key={service.id} value={service.name}>
-                                {service.name}
-                              </option>
-                            ))}
-                          </optgroup>
-                        </select>
-                        {errors.service?.message && (
-                          <p className="mt-1 text-sm text-red-600">
-                            {errors.service.message}
-                          </p>
-                        )}
-                      </div>
-                    )}
-
-                    <div>
-                      <Label
-                        htmlFor="message"
-                        className="text-sm font-semibold text-brand-ink"
-                      >
-                        Message <span className="text-brand-deep">*</span>
-                      </Label>
-                      <Textarea
-                        id="message"
-                        rows={isPrivacyRequest ? 5 : 6}
-                        placeholder={
-                          isPrivacyRequest
-                            ? "Tell us what you'd like us to do — for example, request a copy of your data, correct it, or delete it. Include the email or phone number you originally used."
-                            : "Tell us about the space, what kind of clean you're looking for, timing, and any details you'd like us to know."
-                        }
-                        className="mt-2 resize-y"
-                        {...register("message")}
-                      />
-                      {errors.message?.message && (
-                        <p className="mt-1 text-sm text-red-600">
-                          {errors.message.message}
-                        </p>
-                      )}
-                    </div>
-
-                    {state.kind === "error" && (
-                      <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                        <AlertCircle
-                          className="mt-0.5 size-5 shrink-0"
-                          aria-hidden
-                        />
-                        <p>{state.message}</p>
-                      </div>
-                    )}
-
-                    <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <p className="text-xs text-brand-slate">
-                        By submitting, you agree to be contacted by ScrubFair
-                        about your request. We never share your information.
-                      </p>
-                      <Button
-                        type="submit"
-                        size="lg"
-                        disabled={busy}
-                        className="h-14 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover"
-                      >
-                        {busy ? (
-                          <>
-                            <Loader2
-                              className="mr-2 size-5 animate-spin"
-                              aria-hidden
-                            />
-                            Sending...
-                          </>
-                        ) : (
-                          <>
-                            <Send className="mr-2 size-5" aria-hidden />
-                            Send request
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </form>
-                )}
+                {/* Personal-data requests → phone */}
+                <div className="mt-8 flex items-start gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+                  <ShieldCheck
+                    className="mt-0.5 size-5 shrink-0 text-brand-deep"
+                    aria-hidden
+                  />
+                  <p className="text-sm text-brand-slate">
+                    <span className="font-semibold text-brand-ink">
+                      Requesting your personal information?
+                    </span>{" "}
+                    Please call{" "}
+                    <a
+                      href={`tel:${BRAND.phoneTel}`}
+                      className="font-semibold text-brand-deep underline-offset-2 hover:underline"
+                    >
+                      {BRAND.phone}
+                    </a>{" "}
+                    so we can verify it's you before we share, correct, or
+                    delete anything. Details are in our{" "}
+                    <Link
+                      to="/privacy"
+                      className="font-semibold text-brand-deep underline-offset-2 hover:underline"
+                    >
+                      Privacy Policy
+                    </Link>
+                    .
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* Info */}
-            <div
-              className="lg:col-span-2"
-            >
+            {/* Info card */}
+            <div className="lg:col-span-2">
               <div className="relative h-full overflow-hidden rounded-3xl bg-brand-sky-soft p-8">
-                <div className="absolute -right-12 -top-12 size-48 rounded-full bg-brand-sky opacity-40 blur-3xl">
-                </div>
-                <div className="absolute -bottom-16 -left-16 size-56 rounded-full bg-brand-deep opacity-30 blur-3xl">
-                </div>
+                <div className="absolute -right-12 -top-12 size-48 rounded-full bg-brand-sky opacity-40 blur-3xl" />
+                <div className="absolute -bottom-16 -left-16 size-56 rounded-full bg-brand-deep opacity-30 blur-3xl" />
 
                 <div className="relative">
                   <h2 className="text-xl font-bold text-brand-ink">
                     Reach us directly
                   </h2>
                   <p className="mt-2 text-sm text-brand-slate">
-                    Prefer email or a quick call? We're happy to chat.
+                    A real person answers — no phone tree, no hold music.
                   </p>
 
                   <ul className="mt-8 space-y-5">
@@ -417,12 +146,15 @@ export default function Contact() {
                           <span className="mt-0.5 block text-base font-medium text-brand-ink group-hover:text-brand-deep">
                             {BRAND.phone}
                           </span>
+                          <span className="mt-0.5 block text-sm text-brand-slate">
+                            {BRAND.hours}
+                          </span>
                         </span>
                       </a>
                     </li>
                     <li>
-                      <Link
-                        to="/contact"
+                      <a
+                        href={`mailto:${BRAND.email}`}
                         className="group flex items-start gap-4"
                       >
                         <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white text-brand-deep shadow-sm">
@@ -436,7 +168,7 @@ export default function Contact() {
                             {BRAND.email}
                           </span>
                         </span>
-                      </Link>
+                      </a>
                     </li>
                     <li>
                       <div className="flex items-start gap-4">
@@ -465,6 +197,14 @@ export default function Contact() {
                       className="h-56 w-full bg-brand-sky-tint object-cover"
                     />
                   </div>
+
+                  <Link
+                    to="/book"
+                    className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-brand-deep hover:text-brand-deep-hover"
+                  >
+                    See your estimated price
+                    <ArrowRight className="size-4" aria-hidden />
+                  </Link>
                 </div>
               </div>
             </div>
@@ -472,170 +212,5 @@ export default function Contact() {
         </div>
       </section>
     </div>
-  );
-}
-
-function Field({
-  id,
-  label,
-  type = "text",
-  placeholder,
-  error,
-  registration,
-  autoComplete,
-  required,
-}: {
-  id: string;
-  label: string;
-  type?: string;
-  placeholder?: string;
-  error?: string;
-  registration: ReturnType<ReturnType<typeof useForm<FormValues>>["register"]>;
-  autoComplete?: string;
-  required?: boolean;
-}) {
-  return (
-    <div>
-      <Label htmlFor={id} className="text-sm font-semibold text-brand-ink">
-        {label} {required && <span className="text-brand-deep">*</span>}
-      </Label>
-      <Input
-        id={id}
-        type={type}
-        placeholder={placeholder}
-        autoComplete={autoComplete}
-        className="mt-2 h-12"
-        {...registration}
-      />
-      {error && <p className="mt-1 text-sm text-red-600">{error}</p>}
-    </div>
-  );
-}
-
-function SuccessPanel({
-  onReset,
-  warnings,
-  emailSent,
-  emailFromUsed,
-  telegramSent,
-}: {
-  onReset: () => void;
-  warnings: string[];
-  emailSent: boolean;
-  emailFromUsed: string | null;
-  telegramSent: boolean;
-}) {
-  const showWarnings = warnings.length > 0;
-  const neitherSent = !emailSent && !telegramSent;
-  return (
-    <div
-      className="text-center"
-      role="status"
-      aria-live="polite"
-    >
-      <div className="mx-auto flex size-16 items-center justify-center rounded-full bg-brand-sky-soft text-brand-deep">
-        <CheckCircle2 className="size-8" aria-hidden />
-      </div>
-      <h2 className="mt-6 text-2xl font-bold text-brand-ink sm:text-3xl">
-        Thanks — we&rsquo;ve got your request!
-      </h2>
-      <p className="mt-3 text-brand-slate">
-        Your message is on its way to our team. We&rsquo;ll get back to you
-        within one business day with a free quote. If it&rsquo;s more urgent,
-        feel free to give us a call.
-      </p>
-
-      {/* Notification status chip — informational, not blocking */}
-      <div className="mx-auto mt-5 inline-flex flex-wrap items-center justify-center gap-2 text-xs">
-        <NotificationChip
-          ok={emailSent}
-          label={emailSent ? "Email notification sent" : "Email notification skipped"}
-          detail={emailFromUsed ?? undefined}
-        />
-        <NotificationChip
-          ok={telegramSent}
-          label={telegramSent ? "Telegram notification sent" : "Telegram notification skipped"}
-        />
-      </div>
-
-      {/* Warnings (rare — custom-domain fallback, missing credentials, etc.) */}
-      {showWarnings && (
-        <div
-          className={`mt-6 rounded-xl border p-4 text-left text-sm ${
-            neitherSent
-              ? "border-amber-300 bg-amber-50 text-amber-900"
-              : "border-slate-200 bg-slate-50 text-brand-slate"
-          }`}
-        >
-          <div className="flex items-start gap-2">
-            {neitherSent ? (
-              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-            ) : (
-              <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
-            )}
-            <div>
-              <p className="font-semibold">
-                {neitherSent
-                  ? "Heads-up — your message was saved, but neither email nor Telegram went out. For the fastest reply, please call us directly."
-                  : "Notification details"}
-              </p>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
-                {warnings.map((w, i) => (
-                  <li key={i}>{w}</li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-        <Button
-          asChild
-          className="h-12 bg-brand-deep px-6 text-white shadow-brand hover:bg-brand-deep-hover"
-        >
-          <a href={`tel:${BRAND.phoneTel}`}>
-            <Phone className="mr-2 size-4" aria-hidden />
-            Call {BRAND.phone}
-          </a>
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          onClick={onReset}
-          className="h-12 border-brand-deep px-6 text-brand-deep hover:bg-brand-sky-tint"
-        >
-          Send another message
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function NotificationChip({
-  ok,
-  label,
-  detail,
-}: {
-  ok: boolean;
-  label: string;
-  detail?: string;
-}) {
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-medium ${
-        ok
-          ? "bg-brand-sky-soft text-brand-deep"
-          : "bg-slate-100 text-brand-slate"
-      }`}
-    >
-      {ok ? (
-        <Check className="size-3.5" aria-hidden />
-      ) : (
-        <Info className="size-3.5" aria-hidden />
-      )}
-      {label}
-      {detail && <span className="text-brand-slate/70">— {detail}</span>}
-    </span>
   );
 }
