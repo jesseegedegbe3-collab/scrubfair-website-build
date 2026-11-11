@@ -1333,18 +1333,23 @@ export default function Book() {
             )}
             {error && <p className="mt-4 text-sm font-medium text-red-600">{error}</p>}
 
-            <div
-              className={
-                "mt-7 flex flex-col gap-3 sm:flex-row-reverse sm:items-center " +
-                (movesOnItsOwn ? "sm:justify-start" : "sm:justify-between")
-              }
-            >
+            {/* Back always sits bottom-left; the primary action sits bottom-right. */}
+            <div className="mt-6 flex items-center gap-3">
+              {step > 0 ? (
+                <button
+                  type="button"
+                  onClick={back}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-slate-200 px-4 py-3 text-sm font-semibold text-brand-slate transition-colors hover:border-brand-deep hover:text-brand-deep"
+                >
+                  <ArrowLeft className="size-4" aria-hidden /> Back
+                </button>
+              ) : null}
               {!movesOnItsOwn && (
                 <Button
                   type="button"
                   onClick={next}
                   disabled={busy || (stepId === "time" && estimateResult !== null && !heldSlot)}
-                  className="h-14 w-full bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover sm:w-auto"
+                  className="h-14 flex-1 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover sm:ml-auto sm:flex-none"
                 >
                   {busy ? (
                     <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
@@ -1364,15 +1369,6 @@ export default function Book() {
                   )}
                 </Button>
               )}
-              {step > 0 ? (
-                <button
-                  type="button"
-                  onClick={back}
-                  className="inline-flex items-center justify-center gap-1.5 text-sm font-semibold text-brand-slate hover:text-brand-deep"
-                >
-                  <ArrowLeft className="size-4" aria-hidden /> Back
-                </button>
-              ) : null}
             </div>
           </motion.div>
         </AnimatePresence>
