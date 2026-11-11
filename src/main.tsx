@@ -28,11 +28,70 @@ const SiteLayout = lazy(() =>
   import("./components/SiteLayout.tsx").then((m) => ({ default: m.SiteLayout })),
 );
 
-// Simple loading fallback for route transitions
+// Skeleton preview shown while a route's code is loading. It mirrors the
+// general page structure (header, tinted hero, content cards) so the layout
+// doesn't jump when the real page arrives.
 function RouteLoading() {
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="animate-pulse text-muted-foreground">Loading...</div>
+    <div
+      className="min-h-screen bg-white"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading page"
+    >
+      <span className="sr-only">Loading…</span>
+
+      {/* Header */}
+      <div className="border-b border-slate-200 bg-white">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6 lg:px-8">
+          <div className="size-[42px] animate-pulse rounded-lg bg-slate-200" />
+          <div className="hidden items-center gap-3 md:flex">
+            {[64, 76, 68, 64].map((w) => (
+              <div
+                key={w}
+                className="h-4 animate-pulse rounded bg-slate-200"
+                style={{ width: w }}
+              />
+            ))}
+          </div>
+          <div className="hidden items-center gap-3 md:flex">
+            <div className="h-10 w-24 animate-pulse rounded-lg bg-slate-200" />
+            <div className="h-10 w-36 animate-pulse rounded-lg bg-slate-200" />
+          </div>
+          <div className="size-10 animate-pulse rounded-md bg-slate-200 md:hidden" />
+        </div>
+      </div>
+
+      {/* Hero */}
+      <div className="bg-brand-sky-tint">
+        <div className="mx-auto max-w-7xl px-4 pt-20 pb-12 sm:px-6 lg:px-8 lg:pt-24 lg:pb-16">
+          <div className="mx-auto max-w-3xl space-y-4 text-center">
+            <div className="mx-auto h-3 w-24 animate-pulse rounded bg-slate-300/70" />
+            <div className="mx-auto h-10 w-full max-w-xl animate-pulse rounded bg-slate-300/70 sm:h-12" />
+            <div className="mx-auto h-10 w-3/4 max-w-md animate-pulse rounded bg-slate-300/70 sm:h-12" />
+            <div className="mx-auto mt-6 h-4 w-full max-w-lg animate-pulse rounded bg-slate-300/50" />
+            <div className="mx-auto h-4 w-2/3 max-w-sm animate-pulse rounded bg-slate-300/50" />
+          </div>
+        </div>
+      </div>
+
+      {/* Content cards */}
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <div className="grid gap-6 md:grid-cols-3">
+          {[0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+            >
+              <div className="size-12 animate-pulse rounded-xl bg-slate-200" />
+              <div className="mt-5 h-4 w-2/3 animate-pulse rounded bg-slate-200" />
+              <div className="mt-3 h-3 w-full animate-pulse rounded bg-slate-100" />
+              <div className="mt-2 h-3 w-5/6 animate-pulse rounded bg-slate-100" />
+              <div className="mt-2 h-3 w-3/5 animate-pulse rounded bg-slate-100" />
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
