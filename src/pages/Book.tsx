@@ -339,6 +339,22 @@ export default function Book() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  /**
+   * Single-select cards: record the answer, then move on by themselves after a
+   * short beat so the selected state is visible before the screen changes.
+   * Guarded against double-taps skipping a question.
+   */
+  const pick = (apply: () => void) => {
+    apply();
+    const from = step;
+    const target = Math.min(step + 1, flow.length - 1);
+    window.setTimeout(() => {
+      setStep((s) => (s === from ? target : s));
+      setError(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, 180);
+  };
+
   async function saveContactLead(): Promise<boolean> {
     if (leadId) return true;
     setSubmitting(true);
@@ -559,11 +575,7 @@ export default function Book() {
       </section>
 
       <section className="mx-auto max-w-3xl px-4 py-8 sm:px-6 sm:py-10">
-        <ProgressHeader
-          pct={pct}
-          question={Math.min(step + 1, flow.length)}
-          total={flow.length}
-        />
+        <ProgressHeader pct={pct} />
 
         {outsideArea && (
           <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900">
@@ -598,10 +610,13 @@ export default function Book() {
                     <ChoiceCard
                       key={v}
                       selected={w.serviceType === v}
-                      onClick={() => {
-                        set("serviceType", v as WizardState["serviceType"]);
-                        if (v === "deep" || v === "move_in_out") set("frequency", "one_time");
-                      }}
+                      onClick={() =>
+                        pick(() => {
+                          set("serviceType", v as WizardState["serviceType"]);
+                          if (v === "deep" || v === "move_in_out")
+                            set("frequency", "one_time");
+                        })
+                      }
                       icon={Icon}
                       title={t}
                       description={d}
@@ -630,7 +645,11 @@ export default function Book() {
                         key={o.value}
                         selected={w.frequency === o.value}
                         disabled={locked}
-                        onClick={() => set("frequency", o.value as WizardState["frequency"])}
+                        onClick={() =>
+                          pick(() =>
+                            set("frequency", o.value as WizardState["frequency"]),
+                          )
+                        }
                         title={o.label}
                       />
                     );
@@ -646,7 +665,7 @@ export default function Book() {
                     <ChoiceCard
                       key={o.value}
                       selected={w.homeType === o.value}
-                      onClick={() => set("homeType", o.value)}
+                      onClick={() => pick(() => set("homeType", o.value))}
                       icon={HOME_TYPE_ICONS[o.value] ?? HelpCircle}
                       title={o.label}
                       centered
@@ -750,7 +769,7 @@ export default function Book() {
                     <ChoiceCard
                       key={o.value}
                       selected={w.condition === o.value}
-                      onClick={() => set("condition", o.value)}
+                      onClick={() => pick(() => set("condition", o.value))}
                       title={o.label}
                       description={o.description}
                     />
@@ -1088,7 +1107,7 @@ export default function Book() {
                 title="Any pest activity in the last 12 months?"
                 hint="Cockroaches, bedbugs, or rodents. We ask so the team can prepare properly."
               >
-                <YesNo value={w.pests} onChange={(v) => set("pests", v)} />
+                <YesNo value={w.pests} onChange={(v) => pick(() => set("pests", v))} />
               </Question>
             )}
 
@@ -1273,25 +1292,10 @@ export default function Book() {
 // ---------------------------------------------------------------------------
 // Building blocks
 // ---------------------------------------------------------------------------
-function ProgressHeader({
-  pct,
-  question,
-  total,
-}: {
-  pct: number;
-  question: number;
-  total: number;
-}) {
+function ProgressHeader({ pct }: { pct: number }) {
   return (
     <div className="mb-7">
-      <div className="mb-2 flex items-end justify-between gap-4">
-        <p className="text-sm font-semibold text-brand-ink">
-          <span className="text-brand-deep">{pct}%</span> complete
-        </p>
-        <p className="text-xs font-medium text-slate-500">
-          Question {question} of {total}
-        </p>
-      </div>
+      <p className="mb-2 text-sm font-semibold text-brand-deep">{pct}%</p>
       <div
         className="h-3 w-full overflow-hidden rounded-full bg-slate-100"
         role="progressbar"
