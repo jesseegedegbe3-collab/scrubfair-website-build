@@ -3,6 +3,7 @@ import { Link, NavLink, useLocation } from "react-router";
 import { Menu, X, Phone } from "lucide-react";
 import { BrandLogo } from "@/components/BrandLogo";
 import { Button } from "@/components/ui/button";
+import { CallCta } from "@/components/CallCta";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
@@ -67,14 +68,13 @@ export function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <a
-            href={`tel:${BRAND.phoneTel}`}
+          <CallCta
             aria-label="Call us"
             className="inline-flex items-center gap-2 rounded-lg border border-brand-deep px-4 py-2 text-sm font-semibold text-brand-deep transition-colors hover:bg-brand-sky-tint"
           >
             <Phone className="size-4" aria-hidden />
             Call Us
-          </a>
+          </CallCta>
           <Button
             asChild
             className="bg-brand-deep text-white shadow-brand hover:bg-brand-deep-hover"
@@ -117,13 +117,10 @@ export function SiteHeader() {
                 {item.label}
               </NavLink>
             ))}
-            <a
-              href={`tel:${BRAND.phoneTel}`}
-              className="flex items-center gap-2 rounded-md px-3 py-3 text-base font-medium text-brand-slate hover:bg-brand-sky-tint hover:text-brand-deep"
-            >
+            <CallCta className="flex items-center gap-2 rounded-md px-3 py-3 text-base font-medium text-brand-slate hover:bg-brand-sky-tint hover:text-brand-deep">
               <Phone className="size-4" aria-hidden />
               Call Us · {BRAND.phone}
-            </a>
+            </CallCta>
             <Button
               asChild
               className="mt-2 bg-brand-deep text-white shadow-brand hover:bg-brand-deep-hover"
