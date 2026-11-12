@@ -297,6 +297,13 @@ export default function Book() {
   const releaseHold = useMutation(api.bookings.releaseHold);
   const submitBooking = useMutation(api.bookings.submitBooking);
 
+  // Keep the booking page free of the browser's scrollbar track.
+  useEffect(() => {
+    const root = document.documentElement;
+    root.classList.add("hide-scrollbar");
+    return () => root.classList.remove("hide-scrollbar");
+  }, []);
+
   // Clean up hold if the customer leaves mid-flow.
   useEffect(() => {
     return () => {
@@ -608,7 +615,8 @@ export default function Book() {
 
   return (
     <div className="bg-white">
-      <section className="border-b border-slate-200 bg-brand-sky-tint">
+      {/* Hidden on phones so the question and its options sit above the fold. */}
+      <section className="hidden border-b border-slate-200 bg-brand-sky-tint sm:block">
         <div className="mx-auto max-w-3xl px-4 pb-4 pt-5 sm:px-6">
           <h1 className="text-2xl font-bold text-brand-ink sm:text-3xl">
             A few quick taps, then your price.
@@ -620,7 +628,7 @@ export default function Book() {
       </section>
 
       {/* Progress stays pinned under the site header so it is always visible. */}
-      <div className="sticky top-20 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
+      <div className="sticky top-16 z-40 border-b border-slate-200 bg-white/95 backdrop-blur sm:top-20">
         <div className="mx-auto max-w-3xl px-4 py-3 sm:px-6">
           <ProgressHeader pct={pct} />
         </div>
@@ -651,6 +659,13 @@ export default function Book() {
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
             className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm sm:p-7"
           >
+            {/* A form so the phone's Go/return key moves to the next question. */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void next();
+              }}
+            >
             {stepId === "service" && (
               <Question
                 title="What kind of clean do you need?"
@@ -930,7 +945,7 @@ export default function Book() {
                     }}
                     maxLength={200}
                     placeholder="e.g. inside kitchen cabinets, garage floor"
-                    className="mt-2 h-12 w-full rounded-lg border border-input px-3 text-sm text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
+                    className="mt-2 h-12 w-full rounded-lg border border-input px-3 text-base text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
                   />
                   <p className="mt-1.5 text-xs text-brand-slate">
                     We'll price anything custom and confirm it with you by phone.
@@ -946,17 +961,19 @@ export default function Book() {
                     value={w.firstName}
                     onChange={(e) => set("firstName", e.target.value)}
                     autoComplete="given-name"
+                    autoCapitalize="words"
                     placeholder="First name"
                     aria-label="First name"
-                    className="h-12"
+                    className="h-12 text-base"
                   />
                   <Input
                     value={w.lastName}
                     onChange={(e) => set("lastName", e.target.value)}
                     autoComplete="family-name"
+                    autoCapitalize="words"
                     placeholder="Last name"
                     aria-label="Last name"
-                    className="h-12"
+                    className="h-12 text-base"
                   />
                 </div>
               </Question>
@@ -1022,32 +1039,36 @@ export default function Book() {
                       autoComplete="address-line1"
                       placeholder="Street address"
                       aria-label="Street address"
-                      className="h-12 pl-12"
+                      autoCapitalize="words"
+                      className="h-12 pl-12 text-base"
                     />
                   </div>
-                  <div className="grid gap-3 sm:grid-cols-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                     <Input
                       value={w.unit}
                       onChange={(e) => set("unit", e.target.value)}
                       autoComplete="address-line2"
                       placeholder="Unit (optional)"
                       aria-label="Unit"
-                      className="h-12"
+                      className="h-12 text-base"
                     />
                     <Input
                       value={w.city}
                       onChange={(e) => set("city", e.target.value)}
                       autoComplete="address-level2"
+                      autoCapitalize="words"
                       aria-label="City"
-                      className="h-12"
+                      className="h-12 text-base"
                     />
                     <Input
                       value={w.postal}
                       onChange={(e) => set("postal", e.target.value)}
                       placeholder="R3P 0J4"
                       autoComplete="postal-code"
+                      autoCapitalize="characters"
+                      spellCheck={false}
                       aria-label="Postal code"
-                      className="h-12"
+                      className="col-span-2 h-12 text-base sm:col-span-1"
                     />
                   </div>
                   <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-4 text-sm hover:border-brand-deep has-[[data-state=checked]]:border-brand-deep">
@@ -1254,7 +1275,7 @@ export default function Book() {
                     onChange={(e) => set("petsNote", e.target.value)}
                     placeholder="e.g. one friendly cat; dog will be at daycare"
                     aria-label="Pet details"
-                    className="mt-3 h-12"
+                    className="mt-3 h-12 text-base"
                   />
                 )}
               </Question>
@@ -1294,7 +1315,7 @@ export default function Book() {
                     rows={3}
                     maxLength={2000}
                     placeholder="Anything else we should know?"
-                    className="mt-2 w-full resize-y rounded-lg border border-input px-3 py-2.5 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
+                    className="mt-2 w-full resize-y rounded-lg border border-input px-3 py-2.5 text-base focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
                   />
                 </div>
               </Question>
@@ -1382,7 +1403,7 @@ export default function Book() {
                   type="button"
                   onClick={next}
                   disabled={busy || (stepId === "time" && estimateResult !== null && !heldSlot)}
-                  className="h-14 flex-1 bg-brand-deep px-8 text-base text-white shadow-brand hover:bg-brand-deep-hover sm:ml-auto sm:flex-none"
+                  className="h-14 flex-1 whitespace-nowrap bg-brand-deep px-4 text-sm text-white shadow-brand hover:bg-brand-deep-hover sm:ml-auto sm:flex-none sm:px-8 sm:text-base"
                 >
                   {busy ? (
                     <Loader2 className="mr-2 size-5 animate-spin" aria-hidden />
@@ -1403,6 +1424,7 @@ export default function Book() {
                 </Button>
               )}
             </div>
+            </form>
           </motion.div>
         </AnimatePresence>
 

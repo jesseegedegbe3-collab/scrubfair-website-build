@@ -198,3 +198,18 @@
   background-color: #cdeef9;
   color: #0f172a;
 }
+
+/* Hide the viewport scrollbar (booking pages). Scrolling still works. */
+html.hide-scrollbar,
+.hide-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  /* Don't let a stray pull-to-refresh wipe a half-filled booking. */
+  overscroll-behavior-y: contain;
+}
+html.hide-scrollbar::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
+}
