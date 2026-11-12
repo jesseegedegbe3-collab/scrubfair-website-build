@@ -351,6 +351,27 @@ export default function Book() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
+  // Pending "move on by itself" for multi-select screens (add-ons), so a few
+  // chips can be tapped before the flow moves on.
+  const advanceTimer = useRef<number | null>(null);
+  const cancelAutoAdvance = () => {
+    if (advanceTimer.current !== null) {
+      window.clearTimeout(advanceTimer.current);
+      advanceTimer.current = null;
+    }
+  };
+  const advanceAfterPause = (ms = 900) => {
+    cancelAutoAdvance();
+    const from = step;
+    advanceTimer.current = window.setTimeout(() => {
+      setStep((s) => (s === from ? Math.min(from + 1, flow.length - 1) : s));
+      setError(null);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }, ms);
+  };
+  // Drop any pending jump when the step changes or the page unmounts.
+  useEffect(() => () => cancelAutoAdvance(), [step]);
+
   /**
    * Single-select cards: record the answer, then move on by themselves after a
    * short beat so the selected state is visible before the screen changes.
@@ -768,11 +789,12 @@ export default function Book() {
                       <button
                         key={b.value}
                         type="button"
-                        onClick={() => {
-                          set("sqftBucket", String(b.value));
-                          set("sqft", "");
-                          setError(null);
-                        }}
+                        onClick={() =>
+                          pick(() => {
+                            set("sqftBucket", String(b.value));
+                            set("sqft", "");
+                          })
+                        }
                         aria-pressed={on}
                         className={
                           "flex flex-col items-center gap-1.5 rounded-xl border px-1.5 py-3 text-center transition-all duration-150 " +
@@ -852,7 +874,7 @@ export default function Book() {
             {stepId === "addons" && (
               <Question
                 title="Anything extra on the first visit?"
-                hint="Flat price each. Skip if you don't need any."
+                hint="Tap what you need — we'll move on in a moment. Type below for anything custom."
               >
                 <div className="grid gap-2.5 sm:grid-cols-2">
                   {ADDON_OPTIONS.map((a) => {
@@ -861,12 +883,14 @@ export default function Book() {
                       <button
                         key={a.value}
                         type="button"
-                        onClick={() =>
-                          set(
-                            "addons",
-                            on ? w.addons.filter((x) => x !== a.value) : [...w.addons, a.value],
-                          )
-                        }
+                        onClick={() => {
+                          const next = on
+                            ? w.addons.filter((x) => x !== a.value)
+                            : [...w.addons, a.value];
+                          set("addons", next);
+                          if (next.length > 0) advanceAfterPause();
+                          else cancelAutoAdvance();
+                        }}
                         className={
                           "flex items-center justify-between gap-3 rounded-xl border p-4 text-left text-sm font-semibold transition-colors " +
                           (on
@@ -899,7 +923,11 @@ export default function Book() {
                     id="custom-addon"
                     type="text"
                     value={customAddon}
-                    onChange={(e) => setCustomAddon(e.target.value.slice(0, 200))}
+                    onFocus={cancelAutoAdvance}
+                    onChange={(e) => {
+                      cancelAutoAdvance();
+                      setCustomAddon(e.target.value.slice(0, 200));
+                    }}
                     maxLength={200}
                     placeholder="e.g. inside kitchen cabinets, garage floor"
                     className="mt-2 h-12 w-full rounded-lg border border-input px-3 text-sm text-brand-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-deep"
@@ -1239,7 +1267,12 @@ export default function Book() {
                     <ChoiceCard
                       key={v}
                       selected={w.entryMethod === v}
-                      onClick={() => set("entryMethod", v)}
+                      onClick={() => {
+                        // If they've already typed a request, stay put so they
+                        // can finish; otherwise move on like the other cards.
+                        if (w.specialRequests.trim()) set("entryMethod", v);
+                        else pick(() => set("entryMethod", v));
+                      }}
                       icon={Icon}
                       title={l}
                       centered
