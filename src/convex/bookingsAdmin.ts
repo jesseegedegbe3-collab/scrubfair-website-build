@@ -17,6 +17,7 @@ import {
   busySpansForDate,
   phoneDigits,
   touchScheduleDay,
+  touchScheduleSpan,
   releaseHoldsForBooking,
 } from "./bookingCore";
 
@@ -203,7 +204,11 @@ export const rescheduleBooking = mutation({
     const now = Date.now();
     const dateKey = winnipegDateKey(args.newStartUtc);
 
-    await touchScheduleDay(ctx.db, dateKey);
+    await touchScheduleSpan(
+      ctx.db,
+      args.newStartUtc,
+      slotEndUtc(args.newStartUtc, duration),
+    );
 
     // Availability excluding this booking's own current slot.
     const busyAll = await busySpansForDate(ctx.db, dateKey);
@@ -292,7 +297,11 @@ export const manualBooking = mutation({
     assertAdmin(args.token);
     const now = Date.now();
     const dateKey = winnipegDateKey(args.startUtc);
-    await touchScheduleDay(ctx.db, dateKey);
+    await touchScheduleSpan(
+      ctx.db,
+      args.startUtc,
+      slotEndUtc(args.startUtc, args.durationMinutes),
+    );
     const busy = await busySpansForDate(ctx.db, dateKey);
     const reject = checkSlot({
       nowMs: now,

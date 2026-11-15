@@ -14,7 +14,7 @@ import { internal } from "./_generated/api";
 import { Id, Doc, DataModel } from "./_generated/dataModel";
 import { GenericDatabaseReader, GenericDatabaseWriter } from "convex/server";
 import { AVAILABILITY } from "../config/availability";
-import { winnipegDateKey, utcFromWpgDateAndTime } from "../lib/tz";
+import { addDaysToWpgDateKey, winnipegDateKey, utcFromWpgDateAndTime } from "../lib/tz";
 import type { BusySpan } from "../lib/scheduling";
 
 type DBReader = GenericDatabaseReader<DataModel>;
@@ -87,6 +87,25 @@ export async function busySpansForDate(
   }
 
   return spans;
+}
+
+/**
+ * Serialize on every day a span touches. A job that runs across two working
+ * days must lock both days, or a booking on the second day could be confirmed
+ * concurrently (they would touch different day documents).
+ */
+export async function touchScheduleSpan(
+  db: DBWriter,
+  startUtc: number,
+  endUtc: number,
+): Promise<void> {
+  let key = winnipegDateKey(startUtc);
+  const lastKey = winnipegDateKey(endUtc);
+  for (let i = 0; i < 5; i++) {
+    await touchScheduleDay(db, key);
+    if (key === lastKey) return;
+    key = addDaysToWpgDateKey(key, 1);
+  }
 }
 
 /**

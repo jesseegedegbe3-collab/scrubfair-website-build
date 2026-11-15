@@ -22,7 +22,7 @@ import {
   OCCUPYING_STATUSES,
   phoneDigits,
   releaseHoldsForBooking,
-  touchScheduleDay,
+  touchScheduleSpan,
 } from "./bookingCore";
 
 import { internalQuery } from "./_generated/server";
@@ -338,8 +338,8 @@ export const holdSlot = mutation({
     // Multi-day jobs use the split span (see slotEndUtc).
     const endUtc = slotEndUtc(args.startUtc, args.durationMinutes);
 
-    // Serialize on the day document.
-    await touchScheduleDay(ctx.db, dateKey);
+    // Serialize on every day this job touches (two-day jobs lock both).
+    await touchScheduleSpan(ctx.db, args.startUtc, endUtc);
 
     // Release any previous hold for this booking (they changed their pick).
     await releaseHoldsForBooking(ctx.db, args.bookingId);
@@ -516,7 +516,11 @@ export const submitBooking = mutation({
     // Serialize + re-check the slot inside the same transaction.
     if (!quoteRequired && b.slotStartUtc != null) {
       const dateKey = winnipegDateKey(b.slotStartUtc);
-      await touchScheduleDay(ctx.db, dateKey);
+      await touchScheduleSpan(
+        ctx.db,
+        b.slotStartUtc,
+        b.slotEndUtc ?? slotEndUtc(b.slotStartUtc, b.durationMinutes ?? 180),
+      );
       await releaseHoldsForBooking(ctx.db, b._id); // own hold must not block us
       const busy = await busySpansForDate(ctx.db, dateKey);
       const reject = checkSlot({
