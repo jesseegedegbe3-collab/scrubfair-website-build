@@ -38,18 +38,22 @@ export async function busySpansForDate(
 ): Promise<BusySpan[]> {
   const dayStart = utcFromWpgDateAndTime(dateKey, "00:00");
   const dayEnd = utcFromWpgDateAndTime(dateKey, "23:59");
+  // Jobs can run across two working days (see slotEndUtc), so a span that
+  // started up to a few days earlier may still occupy this date.
+  const lookbackStart = dayStart - 4 * 86_400_000;
   const spans: BusySpan[] = [];
 
-  // Bookings with a slot on this date.
+  // Bookings with a slot on, or running into, this date.
   const bookings = await db
     .query("bookings")
     .withIndex("by_slotStart", (q) =>
-      q.gte("slotStartUtc", dayStart).lte("slotStartUtc", dayEnd),
+      q.gte("slotStartUtc", lookbackStart).lte("slotStartUtc", dayEnd),
     )
     .collect();
   for (const b of bookings) {
     if (!(OCCUPYING_STATUSES as readonly string[]).includes(b.status)) continue;
     if (b.slotStartUtc == null || b.slotEndUtc == null) continue;
+    if (b.slotEndUtc <= dayStart) continue; // finished before today
     spans.push({
       startUtc: b.slotStartUtc,
       endUtc: b.slotEndUtc,
@@ -62,7 +66,7 @@ export async function busySpansForDate(
   const holds = await db.query("slotHolds").collect();
   for (const h of holds) {
     if (h.expiresAt <= now) continue;
-    if (winnipegDateKey(h.slotStartUtc) !== dateKey) continue;
+    if (h.slotEndUtc <= dayStart || h.slotStartUtc > dayEnd) continue;
     spans.push({
       startUtc: h.slotStartUtc,
       endUtc: h.slotEndUtc,
@@ -74,10 +78,11 @@ export async function busySpansForDate(
   const blocks = await db
     .query("calendarBlocks")
     .withIndex("by_startUtc", (q) =>
-      q.gte("startUtc", dayStart).lte("startUtc", dayEnd),
+      q.gte("startUtc", lookbackStart).lte("startUtc", dayEnd),
     )
     .collect();
   for (const bl of blocks) {
+    if (bl.endUtc <= dayStart) continue;
     spans.push({ startUtc: bl.startUtc, endUtc: bl.endUtc, teamId: undefined });
   }
 

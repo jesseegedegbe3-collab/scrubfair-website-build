@@ -15,6 +15,7 @@ import { AVAILABILITY, jobDurationMinutes } from "../config/availability";
 import { estimate, PRICING } from "../config/pricing";
 import { checkSlot, type BusySpan } from "../lib/scheduling";
 import { winnipegDateKey, utcFromWpgDateAndTime, winnipegTimeKey } from "../lib/tz";
+import { slotEndUtc } from "../lib/scheduling";
 import {
   busySpansForDate,
   customerName,
@@ -259,7 +260,7 @@ export const availableDates = query({
     const now = args.nowMs ?? Date.now();
     const out: { dateKey: string; firstSlotUtc: number }[] = [];
     const seen = new Set<string>();
-    const scan = Math.min(args.days ?? 21, AVAILABILITY.maxAdvanceDays);
+    const scan = Math.min(args.days ?? AVAILABILITY.maxAdvanceDays, AVAILABILITY.maxAdvanceDays);
 
     for (let offset = AVAILABILITY.minLeadDays; offset <= scan; offset++) {
       const dayStart = new Date(now + offset * 86_400_000);
@@ -334,8 +335,8 @@ export const holdSlot = mutation({
     if (!b) throw new Error("Booking not found.");
 
     const dateKey = winnipegDateKey(args.startUtc);
-    const endUtc =
-      args.startUtc + (args.durationMinutes + AVAILABILITY.bufferMinutes) * 60_000;
+    // Multi-day jobs use the split span (see slotEndUtc).
+    const endUtc = slotEndUtc(args.startUtc, args.durationMinutes);
 
     // Serialize on the day document.
     await touchScheduleDay(ctx.db, dateKey);

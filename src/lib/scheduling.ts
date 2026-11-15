@@ -110,7 +110,60 @@ export type SlotRejection =
   | "non_working_day"
   | "blackout"
   | "outside_hours"
-  | "capacity";
+  | "capacity"
+  | "too_long";
+
+/** Length of one working day, in minutes. */
+function workMinutes(cfg: ResolvedConfig): number {
+  return toMinutes(cfg.dayEnd!) - toMinutes(cfg.dayStart!);
+}
+
+/** Does this job need a second working day? */
+export function needsSecondDay(
+  durationMinutes: number,
+  config?: SlotGenerationInput["config"],
+): boolean {
+  const cfg = { ...defaults(), ...config };
+  return durationMinutes + cfg.bufferMinutes! > workMinutes(cfg);
+}
+
+/** First open working day strictly after `fromKey` (skips closed days). */
+function nextWorkingDayKey(fromKey: string, cfg: ResolvedConfig): string {
+  let key = addDaysToWpgDateKey(fromKey, 1);
+  for (let i = 0; i < 21; i++) {
+    const open =
+      cfg.workingDays!.includes(winnipegDayOfWeek(key)) &&
+      !(cfg.blackoutDates ?? []).includes(key);
+    if (open) return key;
+    key = addDaysToWpgDateKey(key, 1);
+  }
+  return key;
+}
+
+/**
+ * UTC end of the whole job (buffer included).
+ *
+ * A job that cannot finish inside one working day is split evenly over two:
+ * both halves start at opening time, one on the chosen day and one on the next
+ * open working day. The returned span covers the night between them, so a
+ * single span keeps both days reserved and nothing else is booked alongside.
+ * (570 minutes total => 285 on each day, not 540 + 30.)
+ */
+export function slotEndUtc(
+  startUtc: number,
+  durationMinutes: number,
+  config?: SlotGenerationInput["config"],
+): number {
+  const cfg = { ...defaults(), ...config };
+  const work = workMinutes(cfg);
+  const total = durationMinutes + cfg.bufferMinutes!;
+  if (total <= work) return startUtc + total * 60_000;
+
+  // Even split: the second visit covers whatever the first half did not.
+  const dayTwo = total - Math.ceil(total / 2);
+  const secondDay = nextWorkingDayKey(winnipegDateKey(startUtc), cfg);
+  return utcFromWpgDateAndTime(secondDay, cfg.dayStart!) + dayTwo * 60_000;
+}
 
 /**
  * The authoritative availability rule. Returns null when the slot IS
@@ -133,18 +186,34 @@ export function checkSlot(input: SlotFeasibilityInput): SlotRejection | null {
   if (!cfg.workingDays!.includes(winnipegDayOfWeek(dateKey)))
     return "non_working_day";
 
-  // Working hours: start must be >= dayStart and the whole job (duration +
-  // buffer) must finish by dayEnd.
+  // Working hours: start must be >= dayStart.
   const startMin = toMinutes(timeKey);
   const dayStartMin = toMinutes(cfg.dayStart!);
   const dayEndMin = toMinutes(cfg.dayEnd!);
+  const work = dayEndMin - dayStartMin;
+  const total = input.durationMinutes + cfg.bufferMinutes!;
   if (startMin < dayStartMin) return "outside_hours";
-  if (startMin + input.durationMinutes + cfg.bufferMinutes! > dayEndMin)
-    return "outside_hours";
+
+  // More than two full working days is beyond what we schedule online.
+  if (total > work * 2) return "too_long";
+
+  if (total > work) {
+    // Two-day job: it fills day one, so it can only start at opening time.
+    if (startMin !== dayStartMin) return "outside_hours";
+    const endUtc = slotEndUtc(input.startUtc, input.durationMinutes, cfg);
+    // The overflow day must still sit inside the booking window.
+    if (daysBetween(todayKey, winnipegDateKey(endUtc)) > cfg.maxAdvanceDays!)
+      return "past_max_advance";
+    if (maxConcurrentJobs(input.startUtc, endUtc, input.busy) > cfg.teams!)
+      return "capacity";
+    return null;
+  }
+
+  // Single-day job: the cleaning plus buffer must finish by dayEnd.
+  if (startMin + total > dayEndMin) return "outside_hours";
 
   // Capacity: fewer than `teams` jobs may overlap our whole span.
-  const endUtc =
-    input.startUtc + (input.durationMinutes + cfg.bufferMinutes!) * 60_000;
+  const endUtc = slotEndUtc(input.startUtc, input.durationMinutes, cfg);
   if (maxConcurrentJobs(input.startUtc, endUtc, input.busy) > cfg.teams!)
     return "capacity";
 
@@ -155,7 +224,20 @@ export function checkSlot(input: SlotFeasibilityInput): SlotRejection | null {
 // Slot generation
 // ---------------------------------------------------------------------------
 
-function defaults() {
+/** Fully resolved availability config (no optional keys). */
+export interface ResolvedConfig {
+  workingDays: number[];
+  dayStart: string;
+  dayEnd: string;
+  startTimeInterval: number;
+  teams: number;
+  bufferMinutes: number;
+  minLeadDays: number;
+  maxAdvanceDays: number;
+  blackoutDates: string[];
+}
+
+function defaults(): ResolvedConfig {
   return {
     workingDays: AVAILABILITY.workingDays as number[],
     dayStart: AVAILABILITY.dayStart,
@@ -208,7 +290,7 @@ export function generateSlots(input: SlotGenerationInput): Slot[] {
       if (checkSlot({ ...input, startUtc: t }) === null) {
         slots.push({
           startUtc: t,
-          endUtc: t + (input.durationMinutes + cfg.bufferMinutes!) * 60_000,
+          endUtc: slotEndUtc(t, input.durationMinutes, cfg),
           dateKey,
           timeKey: winnipegTimeKey(t),
         });
@@ -238,7 +320,7 @@ export function slotsForDate(
     if (checkSlot({ ...input, startUtc: t }) === null) {
       slots.push({
         startUtc: t,
-        endUtc: t + (input.durationMinutes + cfg.bufferMinutes!) * 60_000,
+        endUtc: slotEndUtc(t, input.durationMinutes, cfg),
         dateKey,
         timeKey: winnipegTimeKey(t),
       });

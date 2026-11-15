@@ -79,6 +79,7 @@ import {
   winnipegTimeKey,
 } from "../lib/tz";
 import { AVAILABILITY } from "../config/availability";
+import { needsSecondDay, slotEndUtc } from "@/lib/scheduling";
 import { trackBookingConversion } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
@@ -272,6 +273,11 @@ export default function Book() {
     sqft: resolvedSqft || 550,
     addonCount,
   });
+  // A clean that cannot fit in one working day continues the next open day.
+  const spansTwoDays = durationMinutes != null && needsSecondDay(durationMinutes);
+  const heldSecondDayKey = heldSlot
+    ? winnipegDateKey(slotEndUtc(heldSlot.startUtc, heldSlot.durationMinutes))
+    : null;
 
   // Skip questions that can only have one answer:
   //  - a custom-quote home skips the date & time step entirely;
@@ -1182,7 +1188,11 @@ export default function Book() {
               <Question
                 icon={CalendarDays}
                 title="Pick your date and time"
-                hint={`Available starts for roughly ${durationMinutes ?? "…"} minutes of cleaning. Times are Winnipeg time.`}
+                hint={
+                  spansTwoDays
+                    ? `This clean runs about ${durationMinutes} minutes — longer than one working day, so it spans two days. Pick the first day and we continue on the next working morning at ${AVAILABILITY.dayStart}.`
+                    : `Available starts for roughly ${durationMinutes ?? "…"} minutes of cleaning. Times are Winnipeg time.`
+                }
               >
                 {slotJustTaken && (
                   <div
@@ -1271,6 +1281,9 @@ export default function Book() {
                 {heldSlot && (
                   <p className="mt-3 text-sm font-semibold text-brand-deep">
                     Selected: {formatDateShort(heldSlot.dateKey)} at {heldSlot.timeKey}
+                    {heldSecondDayKey && heldSecondDayKey !== heldSlot.dateKey
+                      ? ` · continues ${formatDateShort(heldSecondDayKey)} at ${AVAILABILITY.dayStart}`
+                      : ""}
                   </p>
                 )}
                 {w.frequency !== "one_time" && (
@@ -1380,7 +1393,10 @@ export default function Book() {
                       </p>
                       <p className="mt-1 text-xs text-brand-slate">
                         {heldSlot
-                          ? `${heldSlot.dateKey} at ${heldSlot.timeKey}`
+                          ? `${heldSlot.dateKey} at ${heldSlot.timeKey}` +
+                            (heldSecondDayKey && heldSecondDayKey !== heldSlot.dateKey
+                              ? ` + ${heldSecondDayKey} (two visits)`
+                              : "")
                           : "Date and time confirmed with you"}
                       </p>
                     </div>

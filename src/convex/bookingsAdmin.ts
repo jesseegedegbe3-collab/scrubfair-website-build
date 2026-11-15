@@ -11,7 +11,7 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
 import { AVAILABILITY } from "../config/availability";
-import { checkSlot } from "../lib/scheduling";
+import { checkSlot, slotEndUtc } from "../lib/scheduling";
 import { winnipegDateKey, utcFromWpgDateAndTime } from "../lib/tz";
 import {
   busySpansForDate,
@@ -218,7 +218,7 @@ export const rescheduleBooking = mutation({
       throw new Error(`That time is not available (${reject}). Pick another slot.`);
     }
 
-    const endUtc = args.newStartUtc + (duration + AVAILABILITY.bufferMinutes) * 60_000;
+    const endUtc = slotEndUtc(args.newStartUtc, duration);
     await releaseHoldsForBooking(ctx.db, b._id);
     await ctx.db.patch(b._id, {
       slotStartUtc: args.newStartUtc,
@@ -263,7 +263,7 @@ export const overrideDuration = mutation({
       throw new Error(`Duration override conflicts with the schedule (${reject}).`);
     await ctx.db.patch(b._id, {
       durationMinutes: args.durationMinutes,
-      slotEndUtc: b.slotStartUtc + (args.durationMinutes + AVAILABILITY.bufferMinutes) * 60_000,
+      slotEndUtc: slotEndUtc(b.slotStartUtc, args.durationMinutes),
       updatedAt: Date.now(),
     });
     return { ok: true };
@@ -303,7 +303,7 @@ export const manualBooking = mutation({
     if (reject !== null) {
       throw new Error(`That time is not available (${reject}). Pick another slot.`);
     }
-    const endUtc = args.startUtc + (args.durationMinutes + AVAILABILITY.bufferMinutes) * 60_000;
+    const endUtc = slotEndUtc(args.startUtc, args.durationMinutes);
     const id = await ctx.db.insert("bookings", {
       status: "confirmed",
       createdAt: now,
