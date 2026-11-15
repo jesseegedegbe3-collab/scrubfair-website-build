@@ -72,7 +72,13 @@ import {
   ESTIMATE_SIDE_NOTICE,
   TAX_NOTE,
 } from "@/lib/estimateWording";
-import { winnipegTimeKey, winnipegDateKey } from "../lib/tz";
+import {
+  addDaysToWpgDateKey,
+  todayInWinnipeg,
+  winnipegDateKey,
+  winnipegTimeKey,
+} from "../lib/tz";
+import { AVAILABILITY } from "../config/availability";
 import { trackBookingConversion } from "@/lib/analytics";
 
 // ---------------------------------------------------------------------------
@@ -222,7 +228,13 @@ export default function Book() {
   const [submitting, setSubmitting] = useState(false);
   const [leadId, setLeadId] = useState<Id<"bookings"> | null>(null);
   const [outsideArea, setOutsideArea] = useState(false);
-  const [heldSlot, setHeldSlot] = useState<{ startUtc: number; timeKey: string; dateKey: string } | null>(null);
+  const [heldSlot, setHeldSlot] = useState<{
+    startUtc: number;
+    timeKey: string;
+    dateKey: string;
+    /** Job length the hold was taken for; a change invalidates it. */
+    durationMinutes: number;
+  } | null>(null);
   const [slotJustTaken, setSlotJustTaken] = useState(false);
   const [holdFailReason, setHoldFailReason] = useState<string | null>(null);
   const [honeypot, setHoneypot] = useState("");
@@ -311,6 +323,16 @@ export default function Book() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // If an earlier answer changes the job length (size or add-ons), the held
+  // start may no longer fit the working day — drop it and make them re-pick.
+  useEffect(() => {
+    if (!heldSlot || durationMinutes == null) return;
+    if (heldSlot.durationMinutes === durationMinutes) return;
+    if (leadId) void releaseHold({ bookingId: leadId }).catch(() => {});
+    setHeldSlot(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [durationMinutes, heldSlot, leadId]);
 
   // ---- Progress: completion, never "remaining", never empty at the start ----
   const totalWeight = flow.reduce((sum, s) => sum + s.weight, 0);
@@ -501,6 +523,7 @@ export default function Book() {
           startUtc,
           timeKey: winnipegTimeKey(startUtc),
           dateKey: winnipegDateKey(startUtc),
+          durationMinutes,
         });
       } else {
         setSlotJustTaken(true);
@@ -594,19 +617,20 @@ export default function Book() {
 
   const busy = submitting;
 
-  // Calendar window + bookable-day set for the month grid.
-  const minBookableDay = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 2);
-    d.setHours(0, 0, 0, 0);
-    return d;
-  }, []);
-  const maxBookableDay = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 60);
-    d.setHours(23, 59, 59, 999);
-    return d;
-  }, []);
+  // Calendar window comes from the availability config (Winnipeg dates), so the
+  // lead time / horizon can never drift from what the server enforces.
+  const minBookableDay = useMemo(
+    () =>
+      isoToDate(addDaysToWpgDateKey(todayInWinnipeg(Date.now()), AVAILABILITY.minLeadDays)),
+    [],
+  );
+  const maxBookableDay = useMemo(
+    () =>
+      isoToDate(
+        addDaysToWpgDateKey(todayInWinnipeg(Date.now()), AVAILABILITY.maxAdvanceDays),
+      ),
+    [],
+  );
   const availableDays = useMemo(
     () => (bookableDates ?? []).map((d) => isoToDate(d.dateKey)),
     [bookableDates],
@@ -1178,15 +1202,29 @@ export default function Book() {
                     selected={pickedDate ? isoToDate(pickedDate) : undefined}
                     onSelect={(d) => {
                       if (!d) return;
-                      setPickedDate(dateToIso(d));
-                      setHeldSlot(null);
+                      const key = dateToIso(d);
+                      // Changing the day releases the old 10-minute hold so the
+                      // slot is not blocked for everyone else.
+                      if (heldSlot && heldSlot.dateKey !== key && leadId) {
+                        void releaseHold({ bookingId: leadId }).catch(() => {});
+                        setHeldSlot(null);
+                      }
+                      setPickedDate(key);
                       setSlotJustTaken(false);
                       setError(null);
                     }}
                     numberOfMonths={1}
                     month={calendarMonth ?? (pickedDate ? isoToDate(pickedDate) : firstBookableMonth)}
                     onMonthChange={(m) => setCalendarMonth(m)}
-                    disabled={[{ before: minBookableDay }, { after: maxBookableDay }]}
+                    disabled={[
+                      { before: minBookableDay },
+                      { after: maxBookableDay },
+                      // Days with no bookable start are genuinely disabled, not
+                      // just tinted — they can't be tapped at all.
+                      (day: Date) =>
+                        bookableDates !== undefined &&
+                        !availableDays.some((a) => sameDay(a, day)),
+                    ]}
                     modifiers={{ available: availableDays }}
                     modifiersClassNames={{ available: "text-brand-ink" }}
                     classNames={{
@@ -1202,7 +1240,7 @@ export default function Book() {
                   )}
                 </div>
                 <p className="mt-2 text-center text-xs text-slate-500">
-                  Crossed-out days are full or closed. Pick a day, then a start time.
+                  Faded days are full or closed. Pick a day, then a start time.
                 </p>
                 {pickedDate && (
                   <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -1844,6 +1882,15 @@ function SizeIcon({ level }: { level: number }) {
         <path d="M13.5 26.5v-6h5v6" />
       </g>
     </svg>
+  );
+}
+
+/** Same calendar day, ignoring time. */
+function sameDay(a: Date, b: Date): boolean {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
   );
 }
 
