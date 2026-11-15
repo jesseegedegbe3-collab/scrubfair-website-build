@@ -389,7 +389,7 @@ export const notifyAutoConfirmed = internalAction({
           The price above is an estimate based on the details you entered; we'll confirm it on your home's actual details and call you first if anything changes.<br/>
           ${esc(TAX_NOTE)}<br/>
           We'll call to arrange entry details (keys, codes, parking) — never send codes by email.<br/>
-          Need to change or cancel? Call <b>204-952-8685</b> as soon as you can: [OWNER TO DECIDE — cancellation notice period and any fee].
+          Need to change or cancel? Call <b>204-952-8685</b> as soon as you can. Cancellations more than 48 hours before your cleaning are free; inside 48 hours, 50% of the price applies.
         </p>
         <p style="color:#64748b;font-size:12px;">ScrubFair · Winnipeg, MB · scrubfair.ca</p>
       </div>`,
@@ -461,7 +461,7 @@ export const notifyConfirmed = internalAction({
           <b>Entry:</b> ${esc(ENTRY_LABELS[b.entryMethod] ?? b.entryMethod)} — we'll call to arrange access details.
         </div>
         <p style="color:#334155;font-size:13px;line-height:1.6;">
-          <b>Cancellation policy:</b> [OWNER TO FILL — notice period and any fee].
+          <b>Cancellation policy:</b> free more than 48 hours before your cleaning; inside 48 hours, 50% of the price applies.
           Need to change something? Call 204-952-8685 as soon as you can.
         </p>
         <p style="color:#64748b;font-size:12px;">ScrubFair · Winnipeg, MB · scrubfair.ca</p>
@@ -473,7 +473,7 @@ export const notifyConfirmed = internalAction({
         `Where: ${fullAddress(b)}`,
         `Price: ${price}`,
         ``,
-        `Cancellation policy: [OWNER TO FILL]. Call 204-952-8685 to make changes.`,
+        `Cancellation policy: free more than 48 hours before; inside 48 hours, 50% of the price applies. Call 204-952-8685 to make changes.`,
         `— ScrubFair`,
       ].join("\n"),
     });

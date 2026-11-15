@@ -128,13 +128,16 @@ const SECTIONS = [
         <ul className="ml-5 list-disc space-y-1.5">
           <li>
             Cancellations or reschedules made more than{" "}
-            <strong>24 hours</strong> before the scheduled appointment are
+            <strong>48 hours</strong> before the scheduled appointment are
             free of charge.
           </li>
           <li>
-            Cancellations within <strong>24 hours</strong> of the
-            appointment, or lock-out/no-access situations where our team
-            arrives and cannot begin work, may incur a trip fee of{" "}
+            Cancellations inside <strong>48 hours</strong> of the appointment
+            are charged <strong>50% of the quoted price</strong>.
+          </li>
+          <li>
+            Lock-out or no-access situations, where our team arrives and
+            cannot begin work, may incur a trip fee of{" "}
             <strong>$50</strong>.
           </li>
           <li>

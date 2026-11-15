@@ -109,6 +109,7 @@ export default function AdminBookings() {
   const [finalPrice, setFinalPrice] = useState("");
   const [rescheduling, setRescheduling] = useState<AdminBooking | null>(null);
   const [reschedDuration, setReschedDuration] = useState("");
+  const [reschedDateKey, setReschedDateKey] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [showManual, setShowManual] = useState(false);
   const [showBlock, setShowBlock] = useState(false);
@@ -122,9 +123,9 @@ export default function AdminBookings() {
 
   const availableSlots = useQuery(
     api.bookings.availableSlots,
-    rescheduling && reschedDuration
+    rescheduling && reschedDuration && reschedDateKey
       ? {
-          dateKey: winnipegDateKey(Date.now() + 2 * 86_400_000),
+          dateKey: reschedDateKey,
           durationMinutes: parseInt(reschedDuration, 10) || 180,
         }
       : "skip",
@@ -270,6 +271,12 @@ export default function AdminBookings() {
               onStartReschedule={() => {
                 setRescheduling(b as AdminBooking);
                 setReschedDuration(String(b.durationMinutes ?? 180));
+                // Open on the day the booking currently sits on.
+                setReschedDateKey(
+                  b.slotStartUtc != null
+                    ? winnipegDateKey(b.slotStartUtc)
+                    : winnipegDateKey(Date.now() + 2 * 86_400_000),
+                );
               }}
               onSaveNotes={(notes) => run(() => setNotes({ token, bookingId: b._id, notes }))}
             />
@@ -381,8 +388,17 @@ export default function AdminBookings() {
           >
             Save this duration (no time change)
           </Button>
-          <p className="mt-4 text-sm font-semibold text-brand-ink">
-            Available slots on {winnipegDateKey(Date.now() + 2 * 86_400_000)} (+2 days):
+          <label className="mt-4 block text-xs font-semibold text-brand-slate">
+            Day to reschedule into
+            <input
+              type="date"
+              value={reschedDateKey}
+              onChange={(e) => setReschedDateKey(e.target.value)}
+              className="mt-1 h-10 w-full rounded-md border border-slate-200 px-2 text-sm text-brand-ink"
+            />
+          </label>
+          <p className="mt-3 text-sm font-semibold text-brand-ink">
+            Available slots on {reschedDateKey}:
           </p>
           <div className="mt-2 grid max-h-52 grid-cols-3 gap-2 overflow-auto sm:grid-cols-4">
             {(availableSlots ?? []).map((s) => (

@@ -9,8 +9,8 @@ import {
   TAX_NOTE,
 } from "@/lib/estimateWording";
 
-// OWNER TO FILL: expected response time shown to customers after submitting.
-const RESPONSE_TIME = "[OWNER TO FILL — e.g. within 2 business hours]";
+/** How soon the owner calls after a request comes in. */
+const RESPONSE_TIME = "within 24 hours of booking";
 
 export default function BookThanks() {
   const [params] = useSearchParams();
@@ -95,7 +95,7 @@ export default function BookThanks() {
               },
               {
                 t: "We call about entry details",
-                d: `We'll call you ${RESPONSE_TIME} before your visit to arrange access (keys, codes, parking) — never send door or alarm codes by email.`,
+                d: `We'll call you ${RESPONSE_TIME} to arrange access (keys, codes, parking) — never send door or alarm codes by email.`,
               },
               {
                 t: "We clean",
