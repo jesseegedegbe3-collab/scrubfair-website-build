@@ -136,6 +136,7 @@ export default function AdminBookings() {
   const complete = useMutation(api.bookingsAdmin.completeBooking);
   const reschedule = useMutation(api.bookingsAdmin.rescheduleBooking);
   const overrideDuration = useMutation(api.bookingsAdmin.overrideDuration);
+  const removeBlock = useMutation(api.bookingsAdmin.removeBlock);
   const manual = useMutation(api.bookingsAdmin.manualBooking);
   const blockTime = useMutation(api.bookingsAdmin.blockTime);
   const setNotes = useMutation(api.bookingsAdmin.setOwnerNotes);
@@ -274,6 +275,38 @@ export default function AdminBookings() {
             />
           ))}
         </div>
+
+        {/* Blocked times: days/hours the owner closed off */}
+        {blocks && blocks.length > 0 && (
+          <div className="mt-8 rounded-xl border border-slate-200 bg-white p-4">
+            <h2 className="text-sm font-semibold text-brand-ink">Blocked times</h2>
+            <p className="mt-1 text-xs text-brand-slate">
+              These ranges are unavailable to customers. Remove one to reopen it.
+            </p>
+            <ul className="mt-3 space-y-2">
+              {[...blocks]
+                .sort((a, b) => a.startUtc - b.startUtc)
+                .map((bl) => (
+                  <li
+                    key={bl._id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-slate-100 px-3 py-2 text-xs"
+                  >
+                    <span className="text-brand-slate">
+                      <b className="text-brand-ink">{fmt(bl.startUtc)}</b> → {fmt(bl.endUtc)}
+                      {bl.reason ? ` · ${bl.reason}` : ""}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => run(() => removeBlock({ token, blockId: bl._id }))}
+                      className="shrink-0 rounded-md border border-slate-200 px-2 py-1 font-semibold text-brand-slate hover:border-red-300 hover:text-red-600"
+                    >
+                      Remove
+                    </button>
+                  </li>
+                ))}
+            </ul>
+          </div>
+        )}
       </div>
 
       {/* Confirm dialog */}
@@ -331,6 +364,23 @@ export default function AdminBookings() {
             onChange={(e) => setReschedDuration(e.target.value)}
             className="mt-2 h-11"
           />
+          <Button
+            variant="outline"
+            className="mt-2 h-10"
+            disabled={!Number.isFinite(parseInt(reschedDuration, 10))}
+            onClick={() =>
+              run(async () => {
+                await overrideDuration({
+                  token,
+                  bookingId: rescheduling._id,
+                  durationMinutes: parseInt(reschedDuration, 10),
+                });
+                setRescheduling(null);
+              })
+            }
+          >
+            Save this duration (no time change)
+          </Button>
           <p className="mt-4 text-sm font-semibold text-brand-ink">
             Available slots on {winnipegDateKey(Date.now() + 2 * 86_400_000)} (+2 days):
           </p>

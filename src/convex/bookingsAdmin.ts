@@ -10,7 +10,6 @@
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { internalMutation, mutation, query } from "./_generated/server";
-import { AVAILABILITY } from "../config/availability";
 import { checkSlot, slotEndUtc } from "../lib/scheduling";
 import { winnipegDateKey, utcFromWpgDateAndTime } from "../lib/tz";
 import {

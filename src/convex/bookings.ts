@@ -52,7 +52,10 @@ function isServiceArea(city: string, postal: string): boolean {
 }
 
 // ---------------------------------------------------------------------------
-// Rate limiting (per IP, in-memory; resets per isolate)
+// Rate limiting (per phone, in-memory; resets per isolate)
+// Convex mutations don't expose a client IP, so the customer's number is the
+// stable key we can use. It stops one form being hammered repeatedly; the
+// per-email de-dupe below covers the rest.
 // ---------------------------------------------------------------------------
 const rateBucket = new Map<string, number[]>();
 const RATE_LIMIT = 8;
@@ -89,6 +92,13 @@ export const saveLead = mutation({
     if (phoneDigits(args.phone).length < PHONE_DIGITS_MIN)
       throw new Error("Invalid phone number.");
     if (!args.addressStreet.trim()) throw new Error("Street address required.");
+    const postal = args.addressPostal.trim();
+    if (postal && !POSTAL_RE.test(postal))
+      throw new Error("Enter a valid postal code (e.g. R3P 0J4).");
+    if (!checkRateLimit(`phone:${phoneDigits(args.phone)}`))
+      throw new Error(
+        "Too many attempts from this number. Call 204-952-8685 and we'll book you in.",
+      );
 
     const outsideArea = !isServiceArea(args.addressCity, args.addressPostal);
     const now = Date.now();
